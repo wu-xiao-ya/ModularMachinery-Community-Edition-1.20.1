@@ -20,6 +20,7 @@ import hellfirepvp.modularmachinery.port.event.MmceMachineStructureFormedEvent;
 import hellfirepvp.modularmachinery.port.event.MmceMachineStructureUpdateEvent;
 import hellfirepvp.modularmachinery.port.event.MmceMachineTickEvent;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeCheckEvent;
+import hellfirepvp.modularmachinery.port.event.MmceRecipeEvent;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeEventHandler;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeEventType;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeFailureEvent;
@@ -156,6 +157,14 @@ public final class MmceKubeJSBindings {
 
     public static MmceKubeJSFactoryRecipeThreadBuilder coreThread(String threadName) {
         return new MmceKubeJSFactoryRecipeThreadBuilder(threadName);
+    }
+
+    public static MmceKubeJSRecipeThread recipeThread(MmceRecipeEvent event) {
+        return event == null ? null : event.getKubeJSRecipeThread();
+    }
+
+    public static MmceKubeJSFactoryRecipeThreadBuilder factoryRecipeThread(MmceRecipeEvent event) {
+        return event == null ? null : event.getKubeJSFactoryRecipeThread();
     }
 
     public static MmceKubeJSDynamicPatternBuilder dynamicPattern(String name) {

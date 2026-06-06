@@ -5,6 +5,8 @@ import hellfirepvp.modularmachinery.port.blockentity.MachineControllerBlockEntit
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifier;
 import hellfirepvp.modularmachinery.port.integration.crafttweaker.MmceCTFactoryRecipeThreadBuilder;
 import hellfirepvp.modularmachinery.port.integration.crafttweaker.MmceCTRecipeThread;
+import hellfirepvp.modularmachinery.port.integration.kubejs.MmceKubeJSFactoryRecipeThreadBuilder;
+import hellfirepvp.modularmachinery.port.integration.kubejs.MmceKubeJSRecipeThread;
 import hellfirepvp.modularmachinery.port.recipe.MmceRecipeExecutor;
 import hellfirepvp.modularmachinery.port.recipe.MmceRecipeStatus;
 import net.minecraft.resources.ResourceLocation;
@@ -71,6 +73,22 @@ public class MmceRecipeEvent extends MmceMachineEvent {
     @ZenCodeType.Getter("factoryRecipeThread")
     public MmceCTFactoryRecipeThreadBuilder getFactoryRecipeThread() {
         return MmceCTFactoryRecipeThreadBuilder.of(getController(), run);
+    }
+
+    public MmceKubeJSRecipeThread getKubeJSRecipeThread() {
+        return MmceKubeJSRecipeThread.of(getController(), run);
+    }
+
+    public MmceKubeJSRecipeThread getKubeRecipeThread() {
+        return getKubeJSRecipeThread();
+    }
+
+    public MmceKubeJSFactoryRecipeThreadBuilder getKubeJSFactoryRecipeThread() {
+        return MmceKubeJSFactoryRecipeThreadBuilder.of(getController(), run);
+    }
+
+    public MmceKubeJSFactoryRecipeThreadBuilder getKubeFactoryRecipeThread() {
+        return getKubeJSFactoryRecipeThread();
     }
 
     @ZenCodeType.Getter("recipeId")
