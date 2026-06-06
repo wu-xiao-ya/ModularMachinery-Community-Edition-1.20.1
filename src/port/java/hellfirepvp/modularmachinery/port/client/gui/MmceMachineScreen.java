@@ -1,22 +1,31 @@
 package hellfirepvp.modularmachinery.port.client.gui;
 
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
+import hellfirepvp.modularmachinery.port.blockentity.FluidHatchBlockEntity;
 import hellfirepvp.modularmachinery.port.blockentity.SmartInterfaceBlockEntity;
 import hellfirepvp.modularmachinery.port.data.MmceDataRegistry;
 import hellfirepvp.modularmachinery.port.data.MmceMachineDefinition;
 import hellfirepvp.modularmachinery.port.menu.MmceMachineMenu;
 import hellfirepvp.modularmachinery.port.network.MmceSmartInterfaceUpdatePayload;
 import hellfirepvp.modularmachinery.port.registry.MmceMenus;
+import java.util.ArrayList;
 import java.util.IllegalFormatException;
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -35,6 +44,10 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     private static final ResourceLocation GUI_BAR = texture("guibar");
     private static final ResourceLocation GUI_EMPTY = texture("guismartinterface");
     private static final ResourceLocation GUI_UPGRADE_BUS = texture("guiupgradebus");
+    private static final int BAR_X = 15;
+    private static final int BAR_Y = 10;
+    private static final int BAR_WIDTH = 20;
+    private static final int BAR_HEIGHT = 61;
     private EditBox parallelismBox;
     private EditBox smartInterfaceBox;
     private Button smartPrevButton;
@@ -121,7 +134,9 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         super.render(guiGraphics, mouseX, mouseY, partialTick);
-        renderTooltip(guiGraphics, mouseX, mouseY);
+        if (!renderBarTooltip(guiGraphics, mouseX, mouseY)) {
+            renderTooltip(guiGraphics, mouseX, mouseY);
+        }
     }
 
     @Override
@@ -209,19 +224,101 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     }
 
     private void renderEnergyBar(GuiGraphics guiGraphics, int left, int top) {
-        int filled = fillPixels(menu.energyStored(), menu.energyCapacity(), 61);
+        int filled = fillPixels(menu.energyStored(), menu.energyCapacity(), BAR_HEIGHT);
         if (filled > 0) {
-            guiGraphics.blit(GUI_BAR, left + 15, top + 10 + 61 - filled,
-                    196.0F, 61.0F - filled, 20, filled, 256, 256);
+            guiGraphics.blit(GUI_BAR, left + BAR_X, top + BAR_Y + BAR_HEIGHT - filled,
+                    196.0F, BAR_HEIGHT - filled, BAR_WIDTH, filled, 256, 256);
         }
     }
 
     private void renderFluidBar(GuiGraphics guiGraphics, int left, int top) {
-        int filled = fillPixels(menu.fluidStored(), menu.fluidCapacity(), 61);
-        if (filled > 0) {
-            guiGraphics.fill(left + 16, top + 10 + 61 - filled, left + 35, top + 71, 0xCC4D8DFF);
+        int filled = fillPixels(menu.fluidStored(), menu.fluidCapacity(), BAR_HEIGHT);
+        if (filled > 0 && !renderFluidContent(guiGraphics, left, top, filled)) {
+            guiGraphics.fill(left + BAR_X + 1, top + BAR_Y + BAR_HEIGHT - filled,
+                    left + BAR_X + BAR_WIDTH - 1, top + BAR_Y + BAR_HEIGHT, 0xCC4D8DFF);
         }
-        guiGraphics.blit(GUI_BAR, left + 15, top + 10, 176.0F, 0.0F, 20, 61, 256, 256);
+        guiGraphics.blit(GUI_BAR, left + BAR_X, top + BAR_Y, 176.0F, 0.0F, BAR_WIDTH, BAR_HEIGHT, 256, 256);
+    }
+
+    private boolean renderFluidContent(GuiGraphics guiGraphics, int left, int top, int filled) {
+        FluidStack fluid = storedFluid();
+        if (fluid.isEmpty()) {
+            return false;
+        }
+        IClientFluidTypeExtensions extensions = IClientFluidTypeExtensions.of(fluid.getFluid());
+        ResourceLocation stillTexture = extensions.getStillTexture(fluid);
+        if (stillTexture == null) {
+            return false;
+        }
+        TextureAtlasSprite sprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(stillTexture);
+        int color = extensions.getTintColor(fluid);
+        float alpha = ((color >>> 24) & 0xFF) / 255.0F;
+        float red = ((color >>> 16) & 0xFF) / 255.0F;
+        float green = ((color >>> 8) & 0xFF) / 255.0F;
+        float blue = (color & 0xFF) / 255.0F;
+        guiGraphics.setColor(red, green, blue, alpha);
+        int rendered = 0;
+        while (rendered < filled) {
+            int tileHeight = Math.min(16, filled - rendered);
+            int y = top + BAR_Y + BAR_HEIGHT - filled + rendered;
+            guiGraphics.blit(left + BAR_X, y, 0, BAR_WIDTH, tileHeight, sprite);
+            rendered += tileHeight;
+        }
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        return true;
+    }
+
+    private boolean renderBarTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (!isBarMenu() || !isHovering(BAR_X, BAR_Y, BAR_WIDTH, BAR_HEIGHT, mouseX, mouseY)) {
+            return false;
+        }
+        List<Component> tooltip = switch (menu.kind()) {
+            case ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> energyTooltip();
+            case FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH -> fluidTooltip();
+            default -> List.of();
+        };
+        if (!tooltip.isEmpty()) {
+            guiGraphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isBarMenu() {
+        return switch (menu.kind()) {
+            case ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH,
+                    FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH -> true;
+            default -> false;
+        };
+    }
+
+    private List<Component> energyTooltip() {
+        return List.of(Component.translatable("tooltip.energyhatch.charge",
+                formatNumber(menu.energyStored()), formatNumber(menu.energyCapacity()), "FE"));
+    }
+
+    private List<Component> fluidTooltip() {
+        List<Component> tooltip = new ArrayList<>();
+        FluidStack fluid = storedFluid();
+        if (fluid.isEmpty()) {
+            tooltip.add(Component.translatable("tooltip.fluidhatch.empty"));
+            tooltip.add(Component.translatable("tooltip.fluidhatch.tank", formatNumber(menu.fluidStored()), formatNumber(menu.fluidCapacity())));
+            return tooltip;
+        }
+        tooltip.add(Component.translatable("tooltip.fluidhatch.fluid"));
+        tooltip.add(fluid.getHoverName());
+        tooltip.add(Component.translatable("tooltip.fluidhatch.tank", formatNumber(fluid.getAmount()), formatNumber(menu.fluidCapacity())));
+        return tooltip;
+    }
+
+    private FluidStack storedFluid() {
+        BlockEntity blockEntity = Minecraft.getInstance().level == null
+                ? null
+                : Minecraft.getInstance().level.getBlockEntity(menu.blockPos());
+        if (blockEntity instanceof FluidHatchBlockEntity hatch) {
+            return hatch.getStoredFluid();
+        }
+        return FluidStack.EMPTY;
     }
 
     private int progressPixels(int width) {
@@ -423,8 +520,12 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         return true;
     }
 
-    private static String posText(net.minecraft.core.BlockPos pos) {
+    private static String posText(BlockPos pos) {
         return pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
+    }
+
+    private static String formatNumber(long value) {
+        return String.format(java.util.Locale.ROOT, "%,d", value);
     }
 
     private TextureSpec background() {
