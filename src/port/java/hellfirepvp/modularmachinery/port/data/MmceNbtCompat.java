@@ -13,6 +13,7 @@ import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.LongTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.ShortTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -43,6 +44,14 @@ public final class MmceNbtCompat {
             return true;
         }
         return NbtUtils.compareNbt(expected, actualTag == null ? new CompoundTag() : actualTag, true);
+    }
+
+    public static JsonObject itemStackNbt(ItemStack stack) {
+        return toJsonObject(synthesizeTag(stack));
+    }
+
+    public static JsonObject fluidStackNbt(FluidStack stack) {
+        return toJsonObject(synthesizeTag(stack));
     }
 
     static void apply(ItemStack stack, JsonObject json) {
@@ -151,6 +160,40 @@ public final class MmceNbtCompat {
             }
         }
         return list;
+    }
+
+    public static JsonObject toJsonObject(CompoundTag tag) {
+        JsonObject object = new JsonObject();
+        if (tag == null) {
+            return object;
+        }
+        for (String key : tag.getAllKeys()) {
+            object.add(key, toJson(tag.get(key)));
+        }
+        return object;
+    }
+
+    private static JsonElement toJson(Tag tag) {
+        return switch (tag.getId()) {
+            case Tag.TAG_BYTE -> new JsonPrimitive(((ByteTag) tag).getAsByte());
+            case Tag.TAG_SHORT -> new JsonPrimitive(((ShortTag) tag).getAsShort());
+            case Tag.TAG_INT -> new JsonPrimitive(((IntTag) tag).getAsInt());
+            case Tag.TAG_LONG -> new JsonPrimitive(((LongTag) tag).getAsLong());
+            case Tag.TAG_FLOAT -> new JsonPrimitive(((FloatTag) tag).getAsFloat());
+            case Tag.TAG_DOUBLE -> new JsonPrimitive(((DoubleTag) tag).getAsDouble());
+            case Tag.TAG_STRING -> new JsonPrimitive(((StringTag) tag).getAsString());
+            case Tag.TAG_COMPOUND -> toJsonObject((CompoundTag) tag);
+            case Tag.TAG_LIST -> toJsonArray((ListTag) tag);
+            default -> new JsonPrimitive(tag.getAsString());
+        };
+    }
+
+    private static JsonArray toJsonArray(ListTag tag) {
+        JsonArray array = new JsonArray();
+        for (Tag entry : tag) {
+            array.add(toJson(entry));
+        }
+        return array;
     }
 
     private MmceNbtCompat() {

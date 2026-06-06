@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.mojang.serialization.JsonOps;
+import hellfirepvp.modularmachinery.port.data.MmceNbtCompat;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -17,15 +17,11 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
@@ -543,22 +539,18 @@ public final class MmceScriptValues {
     }
 
     private static Optional<JsonObject> itemStackNbt(ItemStack stack) {
-        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (stack.has(DataComponents.DAMAGE)) {
-            tag.putInt("Damage", stack.getOrDefault(DataComponents.DAMAGE, 0));
-        }
-        return nbtToJson(tag);
+        return nonEmptyNbt(MmceNbtCompat.itemStackNbt(stack));
     }
 
     private static Optional<JsonObject> fluidStackNbt(FluidStack stack) {
-        return nbtToJson(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag());
+        return nonEmptyNbt(MmceNbtCompat.fluidStackNbt(stack));
     }
 
-    private static Optional<JsonObject> nbtToJson(CompoundTag tag) {
-        if (tag == null || tag.isEmpty()) {
+    private static Optional<JsonObject> nonEmptyNbt(JsonObject object) {
+        if (object == null || object.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(NbtOps.INSTANCE.convertTo(JsonOps.INSTANCE, tag).getAsJsonObject());
+        return Optional.of(object);
     }
 
     public record ItemEntry(String id, int amount, Optional<JsonObject> nbt, Optional<JsonObject> displayNbt) {

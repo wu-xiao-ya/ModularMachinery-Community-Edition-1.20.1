@@ -10,8 +10,8 @@ import com.blamejared.crafttweaker.api.item.IItemStack;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mojang.serialization.JsonOps;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
+import hellfirepvp.modularmachinery.port.data.MmceNbtCompat;
 import hellfirepvp.modularmachinery.port.data.MmceScriptDataRegistry;
 import hellfirepvp.modularmachinery.port.event.MmceEventPhase;
 import hellfirepvp.modularmachinery.port.event.MmceEventRegistry;
@@ -25,13 +25,8 @@ import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifier;
 import hellfirepvp.modularmachinery.port.integration.MmceScriptValues;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.openzen.zencode.java.ZenCodeType;
 
@@ -1391,27 +1386,10 @@ public class MmceCTRecipeBuilder {
     }
 
     static JsonObject itemStackNbt(ItemStack stack) {
-        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (stack.has(DataComponents.DAMAGE)) {
-            tag.putInt("Damage", stack.getOrDefault(DataComponents.DAMAGE, 0));
-        }
-        Component name = stack.get(DataComponents.CUSTOM_NAME);
-        if (name != null) {
-            CompoundTag display = tag.contains("display") ? tag.getCompound("display").copy() : new CompoundTag();
-            display.putString("Name", name.getString());
-            tag.put("display", display);
-        }
-        return nbtToJson(tag);
+        return MmceNbtCompat.itemStackNbt(stack);
     }
 
     static JsonObject fluidStackNbt(FluidStack stack) {
-        return nbtToJson(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag());
-    }
-
-    private static JsonObject nbtToJson(CompoundTag tag) {
-        if (tag == null || tag.isEmpty()) {
-            return new JsonObject();
-        }
-        return NbtOps.INSTANCE.convertTo(JsonOps.INSTANCE, tag).getAsJsonObject();
+        return MmceNbtCompat.fluidStackNbt(stack);
     }
 }

@@ -3,7 +3,6 @@ package hellfirepvp.modularmachinery.port.data;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
 import hellfirepvp.modularmachinery.port.event.MmceEventRegistry;
 import java.util.ArrayList;
@@ -16,19 +15,8 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.ByteTag;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.DoubleTag;
-import net.minecraft.nbt.FloatTag;
-import net.minecraft.nbt.IntTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.LongTag;
-import net.minecraft.nbt.ShortTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -481,7 +469,9 @@ final class MmceRecipeAdapterGenerator {
 
     private static void addAdditionalRequirements(JsonArray requirements, MmceRecipeAdapterDefinition adapter) {
         for (MmceRecipeRequirement requirement : adapter.requirements()) {
-            requirements.add(requirement.rawJson().deepCopy());
+            JsonObject copy = requirement.rawJson().deepCopy();
+            applyRequirementModifiers(copy, adapter.modifiers());
+            requirements.add(copy);
         }
     }
 
@@ -597,19 +587,7 @@ final class MmceRecipeAdapterGenerator {
     }
 
     private static JsonObject knownComponentNbt(ItemStack stack) {
-        CompoundTag tag = new CompoundTag();
-        Optional<? extends CustomData> customData = stack.getComponentsPatch().get(DataComponents.CUSTOM_DATA);
-        if (customData != null && customData.isPresent()) {
-            tag.merge(customData.get().copyTag());
-        }
-        Optional<? extends Integer> damage = stack.getComponentsPatch().get(DataComponents.DAMAGE);
-        if (damage != null && damage.isPresent()) {
-            tag.putInt("Damage", damage.get());
-        }
-        if (tag.isEmpty()) {
-            return new JsonObject();
-        }
-        return toJsonObject(tag);
+        return MmceNbtCompat.itemStackNbt(stack);
     }
 
     private static boolean canRepresentItemComponents(ItemStack stack) {
@@ -623,7 +601,9 @@ final class MmceRecipeAdapterGenerator {
     }
 
     private static boolean isRepresentableComponent(DataComponentType<?> type) {
-        return type == DataComponents.CUSTOM_DATA || type == DataComponents.DAMAGE;
+        return type == DataComponents.CUSTOM_DATA
+                || type == DataComponents.DAMAGE
+                || type == DataComponents.CUSTOM_NAME;
     }
 
     private static int applyInt(List<MmceMachineModifierDefinition> modifiers, ResourceLocation target, Optional<MmceIoType> io, int value) {
@@ -827,37 +807,6 @@ final class MmceRecipeAdapterGenerator {
                     case "fuel", "fuel_item", "fuel_item_input" -> true;
                     default -> false;
                 };
-    }
-
-    private static JsonObject toJsonObject(CompoundTag tag) {
-        JsonObject object = new JsonObject();
-        for (String key : tag.getAllKeys()) {
-            object.add(key, toJson(tag.get(key)));
-        }
-        return object;
-    }
-
-    private static JsonElement toJson(Tag tag) {
-        return switch (tag.getId()) {
-            case Tag.TAG_BYTE -> new JsonPrimitive(((ByteTag) tag).getAsByte());
-            case Tag.TAG_SHORT -> new JsonPrimitive(((ShortTag) tag).getAsShort());
-            case Tag.TAG_INT -> new JsonPrimitive(((IntTag) tag).getAsInt());
-            case Tag.TAG_LONG -> new JsonPrimitive(((LongTag) tag).getAsLong());
-            case Tag.TAG_FLOAT -> new JsonPrimitive(((FloatTag) tag).getAsFloat());
-            case Tag.TAG_DOUBLE -> new JsonPrimitive(((DoubleTag) tag).getAsDouble());
-            case Tag.TAG_STRING -> new JsonPrimitive(((StringTag) tag).getAsString());
-            case Tag.TAG_COMPOUND -> toJsonObject((CompoundTag) tag);
-            case Tag.TAG_LIST -> toJsonArray((ListTag) tag);
-            default -> new JsonPrimitive(tag.getAsString());
-        };
-    }
-
-    private static JsonArray toJsonArray(ListTag tag) {
-        JsonArray array = new JsonArray();
-        for (Tag entry : tag) {
-            array.add(toJson(entry));
-        }
-        return array;
     }
 
     private static Optional<Integer> readAdapterOptionalInt(MmceRecipeAdapterDefinition adapter, String... keys) {
