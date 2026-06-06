@@ -65,14 +65,38 @@ public record MmceDynamicPatternDefinition(
         }
         Set<Direction> faces = new LinkedHashSet<>();
         for (JsonElement element : array) {
-            String value = GsonHelper.convertToString(element, "faces[]").trim().toUpperCase(Locale.ROOT);
-            try {
-                faces.add(Direction.valueOf(value));
-            } catch (IllegalArgumentException ignored) {
-                throw new IllegalArgumentException("Invalid dynamic pattern face: " + value.toLowerCase(Locale.ROOT));
+            String value = GsonHelper.convertToString(element, "faces[]").trim();
+            Direction face = parseFace(value);
+            if (face == null) {
+                throw new IllegalArgumentException("Invalid dynamic pattern face: " + value);
             }
+            faces.add(face);
         }
         return Set.copyOf(faces);
+    }
+
+    private static Direction parseFace(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String normalized = value.trim()
+                .replace('-', '_')
+                .toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "FRONT", "FORWARD" -> Direction.NORTH;
+            case "BACK", "BACKWARD", "BEHIND" -> Direction.SOUTH;
+            case "LEFT" -> Direction.WEST;
+            case "RIGHT" -> Direction.EAST;
+            case "TOP" -> Direction.UP;
+            case "BOTTOM" -> Direction.DOWN;
+            default -> {
+                try {
+                    yield Direction.valueOf(normalized);
+                } catch (IllegalArgumentException ignored) {
+                    yield null;
+                }
+            }
+        };
     }
 
     private static List<MmceStructurePart> readParts(JsonObject object, String firstKey, String... otherKeys) {

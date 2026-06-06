@@ -118,6 +118,9 @@ public final class MmceStructureMatcher {
     }
 
     public static BlockPos rotateFromNorth(int x, int y, int z, Direction facing) {
+        if (facing.getAxis() == Direction.Axis.Y) {
+            return new BlockPos(x, y, z);
+        }
         Direction current = Direction.NORTH;
         BlockPos pos = new BlockPos(x, y, z);
         while (current != facing) {
@@ -229,14 +232,19 @@ public final class MmceStructureMatcher {
         }
 
         Set<BlockPos> dynamicPositions = new LinkedHashSet<>();
+        Set<BlockPos> occupiedPositions = new LinkedHashSet<>(componentPositions);
         Map<BlockPos, String> dynamicTags = new LinkedHashMap<>();
         List<DynamicPatternMatch> matched = new ArrayList<>(machine.dynamicPatterns().size());
         for (MmceDynamicPatternDefinition pattern : machine.dynamicPatterns()) {
-            Optional<DynamicPatternMatch> result = matchDynamicPattern(level, controllerPos, facing, pattern, dynamicPositions, dynamicTags);
+            Optional<DynamicPatternMatch> result = matchDynamicPattern(level, controllerPos, facing, pattern, occupiedPositions);
             if (result.isEmpty()) {
                 return Optional.empty();
             }
-            matched.add(result.get());
+            DynamicPatternMatch match = result.get();
+            occupiedPositions.addAll(match.componentPositions());
+            dynamicPositions.addAll(match.componentPositions());
+            dynamicTags.putAll(match.componentTags());
+            matched.add(match);
         }
         componentPositions.addAll(dynamicPositions);
         componentTags.putAll(dynamicTags);
@@ -248,21 +256,16 @@ public final class MmceStructureMatcher {
             BlockPos controllerPos,
             Direction facing,
             MmceDynamicPatternDefinition pattern,
-            Set<BlockPos> dynamicPositions,
-            Map<BlockPos, String> dynamicTags
+            Set<BlockPos> occupiedPositions
     ) {
         Optional<DynamicPatternMatch> best = Optional.empty();
         for (Direction patternFace : truePatternFaces(pattern, facing)) {
             Optional<DynamicPatternMatch> result = matchDynamicPatternFace(
-                    level, controllerPos, facing, pattern, patternFace);
+                    level, controllerPos, facing, pattern, patternFace, occupiedPositions);
             if (result.isPresent() && (best.isEmpty() || result.get().size() > best.get().size())) {
                 best = result;
             }
         }
-        best.ifPresent(match -> {
-            dynamicPositions.addAll(match.componentPositions());
-            dynamicTags.putAll(match.componentTags());
-        });
         return best;
     }
 
@@ -271,7 +274,8 @@ public final class MmceStructureMatcher {
             BlockPos controllerPos,
             Direction facing,
             MmceDynamicPatternDefinition pattern,
-            Direction patternFace
+            Direction patternFace,
+            Set<BlockPos> occupiedPositions
     ) {
         BlockPos offset = pattern.structureSizeOffsetStart();
         BlockPos step = pattern.structureSizeOffset();
@@ -292,6 +296,9 @@ public final class MmceStructureMatcher {
             Optional<DynamicPartMatch> segment = matchPartsAt(
                     level, controllerPos, facing, offset, pattern.parts(), tag -> tag + "_" + pattern.name() + "_" + segmentIndex);
             if (segment.isPresent()) {
+                if (hasBlockedPosition(segment.get().positions(), occupiedPositions, matchedPositions, Set.of())) {
+                    return Optional.empty();
+                }
                 size++;
                 if (size > pattern.maxSize()) {
                     return Optional.empty();
@@ -305,17 +312,25 @@ public final class MmceStructureMatcher {
             if (!pattern.partsEnd().isEmpty()) {
                 Optional<DynamicPartMatch> end = matchPartsAt(
                         level, controllerPos, facing, offset, pattern.partsEnd(), tag -> tag + "_" + pattern.name() + "_end");
+                if (end.isPresent() && hasBlockedPosition(end.get().positions(), occupiedPositions, matchedPositions, Set.of())) {
+                    end = Optional.empty();
+                }
                 if (end.isEmpty()) {
                     if (size <= 0) {
                         return Optional.empty();
                     }
                     BlockPos previous = offset.subtract(step);
+                    DynamicPartMatch overlappedSegment = matchedSegments.getLast();
                     end = matchPartsAt(
                             level, controllerPos, facing, previous, pattern.partsEnd(), tag -> tag + "_" + pattern.name() + "_end");
+                    if (end.isPresent() && hasBlockedPosition(
+                            end.get().positions(), occupiedPositions, matchedPositions, overlappedSegment.positions())) {
+                        end = Optional.empty();
+                    }
                     if (end.isEmpty()) {
                         return Optional.empty();
                     }
-                    DynamicPartMatch overlappedSegment = matchedSegments.removeLast();
+                    matchedSegments.removeLast();
                     matchedPositions.removeAll(overlappedSegment.positions());
                     for (BlockPos pos : overlappedSegment.tags().keySet()) {
                         matchedTags.remove(pos);
@@ -358,6 +373,23 @@ public final class MmceStructureMatcher {
             faces.add(rotated);
         }
         return faces;
+    }
+
+    private static boolean hasBlockedPosition(
+            Set<BlockPos> positions,
+            Set<BlockPos> firstBlocked,
+            Set<BlockPos> secondBlocked,
+            Set<BlockPos> allowed
+    ) {
+        for (BlockPos position : positions) {
+            if (allowed.contains(position)) {
+                continue;
+            }
+            if (firstBlocked.contains(position) || secondBlocked.contains(position)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Optional<Set<BlockPos>> matchPartsAt(
