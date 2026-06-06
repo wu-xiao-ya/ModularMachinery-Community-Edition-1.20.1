@@ -41,6 +41,13 @@ import net.neoforged.neoforge.fluids.FluidStack;
 
 public final class MmceMachineMenu extends AbstractContainerMenu {
     public static final int BUTTON_REFRESH_STRUCTURE = 0;
+    public static final int BUTTON_PARALLEL_DECREMENT_1 = 1;
+    public static final int BUTTON_PARALLEL_DECREMENT_10 = 2;
+    public static final int BUTTON_PARALLEL_DECREMENT_100 = 3;
+    public static final int BUTTON_PARALLEL_INCREMENT_1 = 4;
+    public static final int BUTTON_PARALLEL_INCREMENT_10 = 5;
+    public static final int BUTTON_PARALLEL_INCREMENT_100 = 6;
+    public static final int BUTTON_PARALLEL_SET_BASE = 1_000;
 
     private static final int DATA_COUNT = 12;
     private static final int DATA_KIND = 0;
@@ -163,6 +170,26 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         return menuKind == MachineMenuKind.CONTROLLER || menuKind == MachineMenuKind.FACTORY_CONTROLLER;
     }
 
+    public int parallelism() {
+        return data(DATA_A);
+    }
+
+    public int maxParallelism() {
+        return data(DATA_B);
+    }
+
+    public List<SmartInterfaceBlockEntity.Binding> smartInterfaceBindings() {
+        if (blockEntity instanceof SmartInterfaceBlockEntity smartInterface) {
+            return List.copyOf(smartInterface.getBindings());
+        }
+        return List.of();
+    }
+
+    public SmartInterfaceBlockEntity.Binding smartInterfaceBinding(int index) {
+        List<SmartInterfaceBlockEntity.Binding> bindings = smartInterfaceBindings();
+        return index >= 0 && index < bindings.size() ? bindings.get(index) : null;
+    }
+
     public List<Component> statusLines() {
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal("Position: " + blockPos.getX() + ", " + blockPos.getY() + ", " + blockPos.getZ()));
@@ -183,7 +210,10 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
                 lines.add(Component.literal("Mode: Smart interface"));
                 lines.add(Component.literal("Bindings: " + data(DATA_B)));
             }
-            case PARALLEL_CONTROLLER -> lines.add(Component.literal("Max parallelism: " + data(DATA_A)));
+            case PARALLEL_CONTROLLER -> {
+                lines.add(Component.literal("Max parallelism: " + data(DATA_B)));
+                lines.add(Component.literal("Current parallelism: " + data(DATA_A)));
+            }
             default -> lines.add(Component.literal("Component: " + kind().displayName()));
         }
         int groupId = data(DATA_GROUP_ID);
@@ -245,6 +275,19 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
             controller.refreshStructure();
             broadcastChanges();
             return true;
+        }
+        if (blockEntity instanceof ParallelControllerBlockEntity parallelController) {
+            if (id >= BUTTON_PARALLEL_SET_BASE) {
+                parallelController.setParallelism(id - BUTTON_PARALLEL_SET_BASE);
+                broadcastChanges();
+                return true;
+            }
+            int delta = parallelButtonDelta(id);
+            if (delta != 0) {
+                parallelController.adjustParallelism(delta);
+                broadcastChanges();
+                return true;
+            }
         }
         return false;
     }
@@ -473,9 +516,25 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
             };
         }
         if (blockEntity instanceof ParallelControllerBlockEntity parallelController) {
-            return index == DATA_A ? parallelController.getMaxParallelism() : 0;
+            return switch (index) {
+                case DATA_A -> parallelController.getParallelism();
+                case DATA_B -> parallelController.getMaxParallelism();
+                default -> 0;
+            };
         }
         return 0;
+    }
+
+    private static int parallelButtonDelta(int id) {
+        return switch (id) {
+            case BUTTON_PARALLEL_DECREMENT_1 -> -1;
+            case BUTTON_PARALLEL_DECREMENT_10 -> -10;
+            case BUTTON_PARALLEL_DECREMENT_100 -> -100;
+            case BUTTON_PARALLEL_INCREMENT_1 -> 1;
+            case BUTTON_PARALLEL_INCREMENT_10 -> 10;
+            case BUTTON_PARALLEL_INCREMENT_100 -> 100;
+            default -> 0;
+        };
     }
 
     private int data(int index) {

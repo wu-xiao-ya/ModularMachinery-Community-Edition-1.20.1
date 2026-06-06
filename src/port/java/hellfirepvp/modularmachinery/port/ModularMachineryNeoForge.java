@@ -5,6 +5,7 @@ import hellfirepvp.modularmachinery.port.capability.MmceCapabilities;
 import hellfirepvp.modularmachinery.port.command.MmceCommands;
 import hellfirepvp.modularmachinery.port.data.MmceDataReloadListener;
 import hellfirepvp.modularmachinery.port.integration.kubejs.MmceKubeJSIntegration;
+import hellfirepvp.modularmachinery.port.network.MmcePayloads;
 import hellfirepvp.modularmachinery.port.registry.MmceBlockEntities;
 import hellfirepvp.modularmachinery.port.registry.MmceBlocks;
 import hellfirepvp.modularmachinery.port.registry.MmceCreativeTabs;
@@ -30,6 +31,7 @@ public final class ModularMachineryNeoForge {
         MmceCreativeTabs.TABS.register(modEventBus);
         MmceMenus.MENUS.register(modEventBus);
         modEventBus.addListener(MmceCapabilities::registerCapabilities);
+        modEventBus.addListener(MmcePayloads::register);
         NeoForge.EVENT_BUS.addListener(MmceDataReloadListener::addReloadListener);
         NeoForge.EVENT_BUS.addListener(MmceCommands::register);
 

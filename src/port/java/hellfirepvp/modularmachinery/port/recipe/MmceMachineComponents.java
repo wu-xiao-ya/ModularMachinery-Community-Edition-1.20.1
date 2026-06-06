@@ -116,7 +116,7 @@ public record MmceMachineComponents(
     public int maxParallelism() {
         int maxParallelism = 0;
         for (ParallelControllerBlockEntity controller : parallelControllers) {
-            maxParallelism += controller.getMaxParallelism();
+            maxParallelism += controller.getParallelism();
         }
         return Math.max(1, maxParallelism);
     }

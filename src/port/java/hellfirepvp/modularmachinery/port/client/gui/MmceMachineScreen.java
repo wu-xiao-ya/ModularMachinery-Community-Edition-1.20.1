@@ -1,11 +1,17 @@
 package hellfirepvp.modularmachinery.port.client.gui;
 
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
+import hellfirepvp.modularmachinery.port.blockentity.SmartInterfaceBlockEntity;
+import hellfirepvp.modularmachinery.port.data.MmceDataRegistry;
+import hellfirepvp.modularmachinery.port.data.MmceMachineDefinition;
 import hellfirepvp.modularmachinery.port.menu.MmceMachineMenu;
+import hellfirepvp.modularmachinery.port.network.MmceSmartInterfaceUpdatePayload;
 import hellfirepvp.modularmachinery.port.registry.MmceMenus;
+import java.util.IllegalFormatException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -15,6 +21,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachineMenu> {
     private static final int BACKGROUND = 0xFF20252A;
@@ -28,6 +35,11 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     private static final ResourceLocation GUI_BAR = texture("guibar");
     private static final ResourceLocation GUI_EMPTY = texture("guismartinterface");
     private static final ResourceLocation GUI_UPGRADE_BUS = texture("guiupgradebus");
+    private EditBox parallelismBox;
+    private EditBox smartInterfaceBox;
+    private Button smartPrevButton;
+    private Button smartNextButton;
+    private int smartInterfaceIndex;
 
     public MmceMachineScreen(MmceMachineMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -46,6 +58,12 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
                     Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, MmceMachineMenu.BUTTON_REFRESH_STRUCTURE);
                 }
             }).bounds(leftPos + imageWidth - 66, topPos + 20, 58, 18).build());
+        }
+        if (menu.kind() == MmceMachineMenu.MachineMenuKind.PARALLEL_CONTROLLER) {
+            addParallelControllerWidgets();
+        }
+        if (menu.kind() == MmceMachineMenu.MachineMenuKind.SMART_INTERFACE) {
+            addSmartInterfaceWidgets();
         }
     }
 
@@ -72,6 +90,17 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         guiGraphics.drawString(font, title, titleLabelX, titleLabelY, TEXT, false);
+        if (menu.kind() == MmceMachineMenu.MachineMenuKind.PARALLEL_CONTROLLER) {
+            guiGraphics.drawString(font, Component.literal("Max Parallelism: " + menu.maxParallelism()), 6, 20, TEXT, true);
+            guiGraphics.drawString(font, Component.literal("Current Parallelism: " + menu.parallelism()), 6, 53, TEXT, true);
+            guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED_TEXT, false);
+            return;
+        }
+        if (menu.kind() == MmceMachineMenu.MachineMenuKind.SMART_INTERFACE) {
+            renderSmartInterfaceLabels(guiGraphics);
+            guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED_TEXT, false);
+            return;
+        }
         if (!showStatusLines()) {
             guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED_TEXT, false);
             return;
@@ -92,6 +121,33 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         renderTooltip(guiGraphics, mouseX, mouseY);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (parallelismBox != null && parallelismBox.isFocused() && (keyCode == 257 || keyCode == 335)) {
+            submitParallelismBox();
+            return true;
+        }
+        if (smartInterfaceBox != null && smartInterfaceBox.isFocused() && (keyCode == 257 || keyCode == 335)) {
+            submitSmartInterfaceBox();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    protected void containerTick() {
+        if (menu.kind() == MmceMachineMenu.MachineMenuKind.SMART_INTERFACE) {
+            clampSmartInterfaceIndex();
+            if (smartPrevButton != null) {
+                smartPrevButton.active = smartInterfaceIndex > 0;
+            }
+            if (smartNextButton != null) {
+                smartNextButton.active = smartInterfaceIndex + 1 < menu.smartInterfaceBindings().size();
+            }
+            updateSmartInterfaceSuggestion();
+        }
     }
 
     @EventBusSubscriber(modid = ModularMachineryNeoForge.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
@@ -116,6 +172,194 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             guiGraphics.fill(left + slot.x - 1, top + slot.y - 1, left + slot.x + 17, top + slot.y + 17, BORDER);
             guiGraphics.fill(left + slot.x, top + slot.y, left + slot.x + 16, top + slot.y + 16, SLOT);
         }
+    }
+
+    private void addParallelControllerWidgets() {
+        addParallelButton("-1", MmceMachineMenu.BUTTON_PARALLEL_DECREMENT_1, leftPos + 7, topPos + 26);
+        addParallelButton("-10", MmceMachineMenu.BUTTON_PARALLEL_DECREMENT_10, leftPos + 72, topPos + 26);
+        addParallelButton("-100", MmceMachineMenu.BUTTON_PARALLEL_DECREMENT_100, leftPos + 139, topPos + 26);
+        addParallelButton("+1", MmceMachineMenu.BUTTON_PARALLEL_INCREMENT_1, leftPos + 7, topPos + 60);
+        addParallelButton("+10", MmceMachineMenu.BUTTON_PARALLEL_INCREMENT_10, leftPos + 72, topPos + 60);
+        addParallelButton("+100", MmceMachineMenu.BUTTON_PARALLEL_INCREMENT_100, leftPos + 139, topPos + 60);
+
+        parallelismBox = new EditBox(font, leftPos + 73, topPos + 42, 94, 18, Component.literal("Parallelism"));
+        parallelismBox.setMaxLength(10);
+        parallelismBox.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
+        parallelismBox.setSuggestion(Integer.toString(menu.parallelism()));
+        addRenderableWidget(parallelismBox);
+    }
+
+    private void addParallelButton(String label, int id, int x, int y) {
+        addRenderableWidget(Button.builder(Component.literal(label), button -> sendMenuButton(id))
+                .bounds(x, y, 30, 20)
+                .build());
+    }
+
+    private void addSmartInterfaceWidgets() {
+        smartInterfaceBox = new EditBox(font, leftPos + 98, topPos + 35, 70, 18, Component.literal("Value"));
+        smartInterfaceBox.setMaxLength(16);
+        smartInterfaceBox.setFilter(this::isSmartInterfaceInputAllowed);
+        addRenderableWidget(smartInterfaceBox);
+
+        smartPrevButton = Button.builder(Component.translatable("gui.smartinterface.prev"), button -> {
+                    smartInterfaceIndex = Math.max(0, smartInterfaceIndex - 1);
+                    resetSmartInterfaceInput();
+                })
+                .bounds(leftPos + 7, topPos + 58, 40, 20)
+                .build();
+        smartNextButton = Button.builder(Component.translatable("gui.smartinterface.next"), button -> {
+                    smartInterfaceIndex = Math.min(Math.max(0, menu.smartInterfaceBindings().size() - 1), smartInterfaceIndex + 1);
+                    resetSmartInterfaceInput();
+                })
+                .bounds(leftPos + 129, topPos + 58, 40, 20)
+                .build();
+        addRenderableWidget(smartPrevButton);
+        addRenderableWidget(smartNextButton);
+        resetSmartInterfaceInput();
+    }
+
+    private void submitParallelismBox() {
+        String value = parallelismBox.getValue();
+        if (!value.isBlank()) {
+            try {
+                int parallelism = Integer.parseInt(value);
+                sendMenuButton(MmceMachineMenu.BUTTON_PARALLEL_SET_BASE + parallelism);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        parallelismBox.setValue("");
+        parallelismBox.setSuggestion(Integer.toString(menu.parallelism()));
+    }
+
+    private void sendMenuButton(int id) {
+        if (Minecraft.getInstance().gameMode != null) {
+            Minecraft.getInstance().gameMode.handleInventoryButtonClick(menu.containerId, id);
+        }
+    }
+
+    private void renderSmartInterfaceLabels(GuiGraphics guiGraphics) {
+        int count = menu.smartInterfaceBindings().size();
+        int current = count <= 0 ? 0 : smartInterfaceIndex + 1;
+        drawTrimmed(guiGraphics, Component.translatable("gui.smartinterface.title", count, current).getString(), 4, 4, 168, TEXT);
+        SmartInterfaceBlockEntity.Binding binding = currentSmartBinding();
+        if (binding == null) {
+            drawTrimmed(guiGraphics, Component.translatable("gui.smartinterface.notfound").getString(), 7, 18, 162, TEXT);
+            return;
+        }
+
+        MmceMachineDefinition machine = binding.machineId() == null ? null : MmceDataRegistry.snapshot().machines().get(binding.machineId());
+        String machineName = machine == null || machine.localizedName().isBlank()
+                ? String.valueOf(binding.machineId())
+                : machine.localizedName();
+        drawTrimmed(guiGraphics, machineName + " (" + posText(binding.controllerPos()) + ")", 7, 18, 162, TEXT);
+        drawTrimmed(guiGraphics, smartHeader(machine, binding), 7, 30, 86, MUTED_TEXT);
+        drawTrimmed(guiGraphics, smartValue(machine, binding), 7, 42, 86, TEXT);
+        drawTrimmed(guiGraphics, smartFooter(machine, binding), 7, 80, 162, MUTED_TEXT);
+    }
+
+    private void drawTrimmed(GuiGraphics guiGraphics, String text, int x, int y, int maxWidth, int color) {
+        if (text == null || text.isBlank()) {
+            return;
+        }
+        guiGraphics.drawString(font, font.plainSubstrByWidth(text, maxWidth), x, y, color, true);
+    }
+
+    private String smartHeader(MmceMachineDefinition machine, SmartInterfaceBlockEntity.Binding binding) {
+        MmceMachineDefinition.SmartInterfaceTypeDefinition type = smartType(machine, binding.type());
+        if (type != null && !type.headerInfo().isBlank()) {
+            return Component.translatable(type.headerInfo()).getString();
+        }
+        return "Type: " + binding.type();
+    }
+
+    private String smartValue(MmceMachineDefinition machine, SmartInterfaceBlockEntity.Binding binding) {
+        MmceMachineDefinition.SmartInterfaceTypeDefinition type = smartType(machine, binding.type());
+        if (type != null && !type.valueInfo().isBlank()) {
+            try {
+                return String.format(type.valueInfo(), binding.value());
+            } catch (IllegalFormatException ignored) {
+            }
+        }
+        return Component.translatable("gui.smartinterface.value", binding.value()).getString();
+    }
+
+    private String smartFooter(MmceMachineDefinition machine, SmartInterfaceBlockEntity.Binding binding) {
+        MmceMachineDefinition.SmartInterfaceTypeDefinition type = smartType(machine, binding.type());
+        if (type != null && !type.footerInfo().isBlank()) {
+            return Component.translatable(type.footerInfo()).getString();
+        }
+        return "";
+    }
+
+    private MmceMachineDefinition.SmartInterfaceTypeDefinition smartType(MmceMachineDefinition machine, String type) {
+        if (machine == null) {
+            return null;
+        }
+        for (MmceMachineDefinition.SmartInterfaceTypeDefinition definition : machine.smartInterfaceTypes()) {
+            if (definition.type().equals(type)) {
+                return definition;
+            }
+        }
+        return null;
+    }
+
+    private SmartInterfaceBlockEntity.Binding currentSmartBinding() {
+        clampSmartInterfaceIndex();
+        return menu.smartInterfaceBinding(smartInterfaceIndex);
+    }
+
+    private void clampSmartInterfaceIndex() {
+        int count = menu.smartInterfaceBindings().size();
+        if (count <= 0) {
+            smartInterfaceIndex = 0;
+        } else if (smartInterfaceIndex >= count) {
+            smartInterfaceIndex = count - 1;
+        }
+    }
+
+    private void submitSmartInterfaceBox() {
+        SmartInterfaceBlockEntity.Binding binding = currentSmartBinding();
+        if (binding != null && !smartInterfaceBox.getValue().isBlank()) {
+            try {
+                float value = Float.parseFloat(smartInterfaceBox.getValue());
+                if (Float.isFinite(value)) {
+                    PacketDistributor.sendToServer(new MmceSmartInterfaceUpdatePayload(menu.blockPos(), binding.controllerPos(), value));
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        resetSmartInterfaceInput();
+    }
+
+    private void resetSmartInterfaceInput() {
+        if (smartInterfaceBox != null) {
+            smartInterfaceBox.setValue("");
+            updateSmartInterfaceSuggestion();
+        }
+    }
+
+    private void updateSmartInterfaceSuggestion() {
+        if (smartInterfaceBox != null && smartInterfaceBox.getValue().isEmpty()) {
+            SmartInterfaceBlockEntity.Binding binding = currentSmartBinding();
+            smartInterfaceBox.setSuggestion(binding == null ? "" : Float.toString(binding.value()));
+        }
+    }
+
+    private boolean isSmartInterfaceInputAllowed(String value) {
+        if (value == null || value.length() > 16) {
+            return false;
+        }
+        for (int index = 0; index < value.length(); index++) {
+            char c = value.charAt(index);
+            if (!Character.isDigit(c) && c != '.' && c != '-' && c != '+' && c != 'e' && c != 'E') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String posText(net.minecraft.core.BlockPos pos) {
+        return pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
     }
 
     private TextureSpec background() {
