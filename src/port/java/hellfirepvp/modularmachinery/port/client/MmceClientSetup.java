@@ -1,6 +1,8 @@
 package hellfirepvp.modularmachinery.port.client;
 
 import hellfirepvp.modularmachinery.port.blockentity.BaseMachineBlockEntity;
+import hellfirepvp.modularmachinery.port.client.gui.MmceBlueprintScreen;
+import hellfirepvp.modularmachinery.port.item.MmceBlueprintScreenOpener;
 import hellfirepvp.modularmachinery.port.registry.MmceBlocks;
 import hellfirepvp.modularmachinery.port.registry.MmceItems;
 import net.minecraft.world.level.block.Block;
@@ -11,6 +13,10 @@ public final class MmceClientSetup {
     private static final int DEFAULT_MACHINE_COLOR = BaseMachineBlockEntity.DEFAULT_MACHINE_COLOR;
 
     private MmceClientSetup() {
+    }
+
+    public static void initClient() {
+        MmceBlueprintScreenOpener.register(MmceBlueprintScreen::open);
     }
 
     public static void registerBlockColors(RegisterColorHandlersEvent.Block event) {

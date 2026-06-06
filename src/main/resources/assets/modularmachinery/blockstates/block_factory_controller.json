@@ -1,8 +1,4 @@
 {
-  "forge_marker": 1,
-  "defaults": {
-    "model": "modularmachinery:block/blockfactorycontroller"
-  },
   "variants": {
     "facing=north,formed=false": {
       "model": "modularmachinery:block/blockfactorycontroller"
@@ -33,11 +29,6 @@
     "facing=east,formed=true": {
       "model": "modularmachinery:block/blockfactorycontroller",
       "y": 90
-    },
-    "inventory": [
-      {
-        "transform": "forge:default-block"
-      }
-    ]
+    }
   }
 }

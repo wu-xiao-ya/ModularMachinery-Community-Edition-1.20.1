@@ -45,11 +45,14 @@ public class MmceBlueprintItem extends Item {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
-        if (!context.getLevel().isClientSide()
-                && context.getPlayer() != null
-                && context.getLevel().getBlockEntity(context.getClickedPos()) instanceof MachineControllerBlockEntity controller
-                && bindController(context.getLevel(), context.getPlayer(), context.getItemInHand(), controller)) {
-            return InteractionResult.SUCCESS;
+        if (context.getLevel().getBlockEntity(context.getClickedPos()) instanceof MachineControllerBlockEntity controller
+                && MmceBlueprintData.getMachineId(context.getItemInHand()).isPresent()) {
+            if (!context.getLevel().isClientSide()
+                    && context.getPlayer() != null
+                    && bindController(context.getLevel(), context.getPlayer(), context.getItemInHand(), controller)) {
+                return InteractionResult.SUCCESS;
+            }
+            return InteractionResult.sidedSuccess(context.getLevel().isClientSide());
         }
         showBlueprint(context.getLevel(), context.getPlayer(), context.getItemInHand());
         return InteractionResult.sidedSuccess(context.getLevel().isClientSide());
@@ -63,13 +66,20 @@ public class MmceBlueprintItem extends Item {
     }
 
     private static void showBlueprint(Level level, Player player, ItemStack stack) {
-        if (level.isClientSide() || player == null) {
+        if (player == null) {
             return;
         }
 
         Optional<ResourceLocation> machineId = MmceBlueprintData.getMachineId(stack);
         if (machineId.isEmpty()) {
-            player.displayClientMessage(Component.literal("Blueprint is not bound to a machine."), false);
+            if (!level.isClientSide()) {
+                player.displayClientMessage(Component.literal("Blueprint is not bound to a machine."), false);
+            }
+            return;
+        }
+
+        if (level.isClientSide()) {
+            MmceDataRegistry.getMachine(machineId.get()).ifPresent(MmceBlueprintScreenOpener::open);
             return;
         }
 

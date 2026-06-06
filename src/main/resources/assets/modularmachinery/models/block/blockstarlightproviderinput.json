@@ -2,6 +2,6 @@
       "parent": "modularmachinery:block/blockmodel_overlay_all",
       "textures": {
             "bg_all": "modularmachinery:block/blockcasing_plain",
-            "ov_all": "astralsorcery:items/resonator_starlight"
+            "ov_all": "modularmachinery:block/overlay_transparent"
       }
 }

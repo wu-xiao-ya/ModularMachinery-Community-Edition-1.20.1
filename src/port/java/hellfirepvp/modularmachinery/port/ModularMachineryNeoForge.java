@@ -36,6 +36,7 @@ public final class ModularMachineryNeoForge {
         modEventBus.addListener(MmceCapabilities::registerCapabilities);
         modEventBus.addListener(MmcePayloads::register);
         if (FMLEnvironment.dist == Dist.CLIENT) {
+            MmceClientSetup.initClient();
             modEventBus.addListener(MmceClientSetup::registerBlockColors);
             modEventBus.addListener(MmceClientSetup::registerItemColors);
         }

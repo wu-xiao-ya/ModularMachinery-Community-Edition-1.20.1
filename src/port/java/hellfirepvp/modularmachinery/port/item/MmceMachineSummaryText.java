@@ -7,11 +7,11 @@ import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
-final class MmceMachineSummaryText {
+public final class MmceMachineSummaryText {
     private MmceMachineSummaryText() {
     }
 
-    static List<Component> chatSummary(MmceMachineDefinition machine, boolean includeModifiers) {
+    public static List<Component> chatSummary(MmceMachineDefinition machine, boolean includeModifiers) {
         List<Component> lines = new ArrayList<>();
         String structure = "Structure parts: " + machine.parts().size()
                 + " | positions: " + machine.structureBlockCount();
@@ -37,7 +37,7 @@ final class MmceMachineSummaryText {
         return lines;
     }
 
-    static List<Component> tooltipSummary(MmceMachineDefinition machine) {
+    public static List<Component> tooltipSummary(MmceMachineDefinition machine) {
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal("Parts " + machine.parts().size()
                 + ", positions " + machine.structureBlockCount()

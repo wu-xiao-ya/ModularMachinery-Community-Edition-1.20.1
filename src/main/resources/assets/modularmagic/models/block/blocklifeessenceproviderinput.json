@@ -3,8 +3,8 @@
 	"texture_size": [32, 32],
 	"textures": {
 		"1": "modularmagic:blocks/lifeessenceprovider",
-		"2": "bloodmagic:blocks/blankrune",
-		"particle": "bloodmagic:blocks/blankrune"
+		"2": "modularmagic:blocks/lifeessenceprovider",
+		"particle": "modularmagic:blocks/lifeessenceprovider"
 	},
 	"elements": [
 		{
