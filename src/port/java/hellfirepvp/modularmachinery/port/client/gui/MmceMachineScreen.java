@@ -85,6 +85,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
                         7.0F, 130.0F, 18, 18, 256, 256);
             }
         }
+        renderMachineOverlays(guiGraphics, left, top);
     }
 
     @Override
@@ -172,6 +173,70 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             guiGraphics.fill(left + slot.x - 1, top + slot.y - 1, left + slot.x + 17, top + slot.y + 17, BORDER);
             guiGraphics.fill(left + slot.x, top + slot.y, left + slot.x + 16, top + slot.y + 16, SLOT);
         }
+    }
+
+    private void renderMachineOverlays(GuiGraphics guiGraphics, int left, int top) {
+        switch (menu.kind()) {
+            case CONTROLLER -> renderControllerProgress(guiGraphics, left, top);
+            case FACTORY_CONTROLLER -> renderFactoryQueue(guiGraphics, left, top);
+            case ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> renderEnergyBar(guiGraphics, left, top);
+            case FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH -> renderFluidBar(guiGraphics, left, top);
+            default -> {
+            }
+        }
+    }
+
+    private void renderControllerProgress(GuiGraphics guiGraphics, int left, int top) {
+        int progress = progressPixels(140);
+        if (progress <= 0) {
+            return;
+        }
+        int color = menu.working() ? 0xFF5BE37D : 0xFF8EA7B4;
+        guiGraphics.fill(left + 11, top + 197, left + 11 + progress, top + 201, color);
+    }
+
+    private void renderFactoryQueue(GuiGraphics guiGraphics, int left, int top) {
+        int rowY = top + 8;
+        int active = menu.working() ? Math.max(1, Math.min(6, menu.recipeProgress() > 0 ? 1 : 0)) : 0;
+        for (int row = 0; row < 6; row++) {
+            int y = rowY + row * 33;
+            guiGraphics.blit(texture("guifactoryelements"), left + 8, y, 0.0F, 0.0F, 86, 32, 86, 32);
+            if (row < active) {
+                int progress = progressPixels(86);
+                guiGraphics.fill(left + 8, y, left + 8 + progress, y + 32, 0x663EE070);
+            }
+        }
+    }
+
+    private void renderEnergyBar(GuiGraphics guiGraphics, int left, int top) {
+        int filled = fillPixels(menu.energyStored(), menu.energyCapacity(), 61);
+        if (filled > 0) {
+            guiGraphics.blit(GUI_BAR, left + 15, top + 10 + 61 - filled,
+                    196.0F, 61.0F - filled, 20, filled, 256, 256);
+        }
+    }
+
+    private void renderFluidBar(GuiGraphics guiGraphics, int left, int top) {
+        int filled = fillPixels(menu.fluidStored(), menu.fluidCapacity(), 61);
+        if (filled > 0) {
+            guiGraphics.fill(left + 16, top + 10 + 61 - filled, left + 35, top + 71, 0xCC4D8DFF);
+        }
+        guiGraphics.blit(GUI_BAR, left + 15, top + 10, 176.0F, 0.0F, 20, 61, 256, 256);
+    }
+
+    private int progressPixels(int width) {
+        int total = menu.recipeTotalTime();
+        if (total <= 0 || menu.recipeProgress() <= 0) {
+            return 0;
+        }
+        return Math.max(1, Math.min(width, (int) ((long) menu.recipeProgress() * width / total)));
+    }
+
+    private static int fillPixels(long stored, long capacity, int height) {
+        if (stored <= 0 || capacity <= 0) {
+            return 0;
+        }
+        return Math.max(1, Math.min(height, (int) ((stored * height + capacity - 1) / capacity)));
     }
 
     private void addParallelControllerWidgets() {

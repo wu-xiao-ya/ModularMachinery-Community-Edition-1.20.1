@@ -178,6 +178,42 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         return data(DATA_B);
     }
 
+    public int machineColor() {
+        return data(DATA_COLOR) & 0xFFFFFF;
+    }
+
+    public boolean structureFormed() {
+        return data(DATA_A) == 1;
+    }
+
+    public boolean working() {
+        return data(DATA_B) == 1;
+    }
+
+    public int recipeProgress() {
+        return data(DATA_C);
+    }
+
+    public int recipeTotalTime() {
+        return Math.max(1, data(DATA_H));
+    }
+
+    public long energyStored() {
+        return unsignedLong(DATA_B, DATA_C);
+    }
+
+    public long energyCapacity() {
+        return unsignedLong(DATA_D, DATA_E);
+    }
+
+    public int fluidStored() {
+        return data(DATA_C);
+    }
+
+    public int fluidCapacity() {
+        return Math.max(1, data(DATA_D));
+    }
+
     public List<SmartInterfaceBlockEntity.Binding> smartInterfaceBindings() {
         if (blockEntity instanceof SmartInterfaceBlockEntity smartInterface) {
             return List.copyOf(smartInterface.getBindings());
