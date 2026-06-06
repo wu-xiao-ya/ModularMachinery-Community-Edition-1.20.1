@@ -1,6 +1,6 @@
 {
     "parent": "item/generated",
     "textures": {
-        "layer0": "modularmachinery:items/blueprint"
+        "layer0": "modularmachinery:item/blueprint"
     }
 }

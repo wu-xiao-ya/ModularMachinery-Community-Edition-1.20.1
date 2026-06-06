@@ -2,8 +2,8 @@
 	"credit": "Made with Blockbench",
 	"parent": "block/block",
 	"textures": {
-		"0": "modularmachinery:blocks/crushing_wheels_idle",
-		"particle": "modularmachinery:blocks/crushing_wheels_idle"
+		"0": "modularmachinery:block/crushing_wheels_idle",
+		"particle": "modularmachinery:block/crushing_wheels_idle"
 	},
 	"elements": [
 		{

@@ -1,9 +1,9 @@
 {
   "defaults": {
-    "model": "modularmachinery:blockmefluidoutputbus"
+    "model": "modularmachinery:block/blockmefluidoutputbus"
   },
   "variants": {
-    "inventory": { "model": "modularmachinery:blockmefluidoutputbus" },
-    "normal": { "model": "modularmachinery:blockmefluidoutputbus"}
+    "inventory": { "model": "modularmachinery:block/blockmefluidoutputbus" },
+    "normal": { "model": "modularmachinery:block/blockmefluidoutputbus"}
   }
 }

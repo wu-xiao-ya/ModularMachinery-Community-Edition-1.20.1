@@ -365,6 +365,9 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     }
 
     private boolean canInsertIntoMachineSlots() {
+        if (blockEntity instanceof MachineControllerBlockEntity) {
+            return true;
+        }
         if (blockEntity instanceof ItemBusBlockEntity bus) {
             return bus.isInput();
         }
@@ -495,6 +498,8 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
 
     private SlotPosition machineSlotPosition(int slot) {
         return switch (fallbackKind) {
+            case CONTROLLER -> new SlotPosition(151, 8);
+            case FACTORY_CONTROLLER -> new SlotPosition(255, 8);
             case ITEM_INPUT_BUS, ITEM_OUTPUT_BUS -> itemBusSlotPosition(slot, machineSlotCount);
             case UPGRADE_BUS -> new SlotPosition(8 + (slot % 3) * 18, 17 + (slot / 3) * 18);
             default -> new SlotPosition(8 + (slot % 9) * 18, 18 + (slot / 9) * 18);
@@ -617,15 +622,17 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
 
     private static final class MachineSlot extends Slot {
         private final boolean allowPlace;
+        private final int slotIndex;
 
         private MachineSlot(Container container, int slot, int x, int y, boolean allowPlace) {
             super(container, slot, x, y);
             this.allowPlace = allowPlace;
+            this.slotIndex = slot;
         }
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            return allowPlace;
+            return allowPlace && container.canPlaceItem(slotIndex, stack);
         }
     }
 

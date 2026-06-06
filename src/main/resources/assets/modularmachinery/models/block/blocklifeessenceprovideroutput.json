@@ -2,9 +2,9 @@
 	"credit": "Made with Blockbench",
 	"texture_size": [32, 32],
 	"textures": {
-		"1": "modularmachinery:blocks/lifeessenceprovider",
-		"3": "modularmachinery:blocks/blockcasing_plain",
-		"particle": "modularmachinery:blocks/blockcasing_plain"
+		"1": "modularmachinery:block/lifeessenceprovider",
+		"3": "modularmachinery:block/blockcasing_plain",
+		"particle": "modularmachinery:block/blockcasing_plain"
 	},
 	"elements": [
 		{

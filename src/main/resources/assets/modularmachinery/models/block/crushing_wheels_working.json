@@ -3,8 +3,8 @@
 	"parent": "block/block",
 	"texture_size": [32, 32],
 	"textures": {
-		"0": "modularmachinery:blocks/crushing_wheels_working",
-		"particle": "modularmachinery:blocks/crushing_wheels_working"
+		"0": "modularmachinery:block/crushing_wheels_working",
+		"particle": "modularmachinery:block/crushing_wheels_working"
 	},
 	"elements": [
 		{

@@ -2,7 +2,7 @@
   "forge_marker": 1,
   "defaults": {
     "transform": "forge:default-block",
-    "model": "modularmachinery:blockimpetushatch",
+    "model": "modularmachinery:block/blockimpetushatch",
     "particle": "modularmachinery:blockimpetushatch"
   },
   "variants": {

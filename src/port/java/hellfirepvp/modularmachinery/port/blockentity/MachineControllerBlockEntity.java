@@ -17,6 +17,8 @@ import hellfirepvp.modularmachinery.port.event.MmceMachineTickEvent;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeRegistry;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifier;
+import hellfirepvp.modularmachinery.port.item.MmceBlueprintData;
+import hellfirepvp.modularmachinery.port.item.MmceBlueprintItem;
 import hellfirepvp.modularmachinery.port.machine.MmceStructureMatcher;
 import hellfirepvp.modularmachinery.port.recipe.MmceRecipeExecutor;
 import hellfirepvp.modularmachinery.port.recipe.MmceRecipeStatus;
@@ -30,21 +32,29 @@ import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.Container;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.openzen.zencode.java.ZenCodeType;
 
 @ZenRegister
 @ZenCodeType.Name("mods.modularmachinery.MachineController")
-public class MachineControllerBlockEntity extends BaseMachineBlockEntity {
+public class MachineControllerBlockEntity extends BaseMachineBlockEntity implements Container {
+    public static final int BLUEPRINT_SLOT = 0;
+
     private boolean structureFormed;
     private boolean working;
     private ResourceLocation machineId;
     private UUID owner;
+    private final NonNullList<ItemStack> blueprintInventory = NonNullList.withSize(1, ItemStack.EMPTY);
     private int structureCheckTicker;
     private List<BlockPos> componentPositions = List.of();
     private Map<BlockPos, String> componentTags = Map.of();
@@ -93,9 +103,14 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity {
         return Optional.ofNullable(machineId);
     }
 
+    public Optional<ResourceLocation> getBlueprintMachineId() {
+        return MmceBlueprintData.getMachineId(blueprintInventory.get(BLUEPRINT_SLOT));
+    }
+
     public void setMachineId(ResourceLocation machineId) {
         if (!java.util.Objects.equals(this.machineId, machineId)) {
             this.machineId = machineId;
+            this.needsStructureRefresh = true;
             markForSync();
         }
     }
@@ -394,17 +409,23 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity {
         Direction facing = getBlockState().hasProperty(ControllerBlock.FACING)
                 ? getBlockState().getValue(ControllerBlock.FACING)
                 : Direction.NORTH;
-        Optional<MmceStructureMatcher.MatchResult> matched = machineId == null
-                ? MmceStructureMatcher.findFirstMatch(level, worldPosition, facing, this::canAutoMatchMachine)
-                : MmceStructureMatcher.findByIdMatch(level, worldPosition, facing, machineId)
-                        .filter(result -> canMatchBoundMachine(result.machine()))
-                        .or(() -> MmceStructureMatcher.findFirstMatch(level, worldPosition, facing, this::canAutoMatchMachine));
+        Optional<ResourceLocation> blueprintMachineId = getBlueprintMachineId();
+        Optional<MmceStructureMatcher.MatchResult> matched = blueprintMachineId
+                .flatMap(id -> MmceStructureMatcher.findByIdMatch(level, worldPosition, facing, id)
+                        .filter(result -> canMatchBoundMachine(result.machine(), blueprintMachineId)));
+        if (matched.isEmpty()) {
+            matched = machineId == null
+                    ? MmceStructureMatcher.findFirstMatch(level, worldPosition, facing, this::canAutoMatchMachine)
+                    : MmceStructureMatcher.findByIdMatch(level, worldPosition, facing, machineId)
+                            .filter(result -> canMatchBoundMachine(result.machine(), blueprintMachineId))
+                            .or(() -> MmceStructureMatcher.findFirstMatch(level, worldPosition, facing, this::canAutoMatchMachine));
+        }
 
         List<BlockPos> oldComponentPositions = componentPositions;
         boolean wasFormed = structureFormed;
         ResourceLocation oldMachineId = machineId;
         boolean formed = matched.isPresent();
-        ResourceLocation newMachineId = matched.map(result -> result.machine().id()).orElse(machineId);
+        ResourceLocation newMachineId = matched.map(result -> result.machine().id()).or(() -> blueprintMachineId).orElse(machineId);
         List<BlockPos> newComponentPositions = matched.map(MmceStructureMatcher.MatchResult::componentPositions).orElse(List.of());
         Map<BlockPos, String> newComponentTags = matched.map(MmceStructureMatcher.MatchResult::componentTags).orElse(Map.of());
         List<MmceMachineModifierDefinition> newActiveModifiers = matched.map(MmceStructureMatcher.MatchResult::activeModifiers).orElse(List.of());
@@ -460,6 +481,11 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity {
         return !machine.factoryOnly();
     }
 
+    protected boolean canMatchBoundMachine(MmceMachineDefinition machine, Optional<ResourceLocation> blueprintMachineId) {
+        return canMatchBoundMachine(machine)
+                && (!machine.requiresBlueprint() || blueprintMachineId.filter(machine.id()::equals).isPresent());
+    }
+
     private void syncSmartInterfaces(MmceMachineDefinition machine) {
         if (level == null) {
             return;
@@ -512,6 +538,7 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity {
         activeRecipeParallelism = Math.max(1, tag.getInt("activeRecipeParallelism"));
         recipeStatus = MmceRecipeStatus.bySerializedName(tag.getString("recipeStatus"));
         recipeStatusDetail = tag.getString("recipeStatusDetail");
+        ContainerHelper.loadAllItems(tag, blueprintInventory, registries);
     }
 
     @Override
@@ -540,6 +567,78 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity {
         if (!recipeStatusDetail.isBlank()) {
             tag.putString("recipeStatusDetail", recipeStatusDetail);
         }
+        ContainerHelper.saveAllItems(tag, blueprintInventory, registries);
+    }
+
+    @Override
+    public int getContainerSize() {
+        return blueprintInventory.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return blueprintInventory.stream().allMatch(ItemStack::isEmpty);
+    }
+
+    @Override
+    public ItemStack getItem(int slot) {
+        return blueprintInventory.get(slot);
+    }
+
+    @Override
+    public ItemStack removeItem(int slot, int amount) {
+        ItemStack result = ContainerHelper.removeItem(blueprintInventory, slot, amount);
+        if (!result.isEmpty()) {
+            needsStructureRefresh = true;
+            markForSync();
+        }
+        return result;
+    }
+
+    @Override
+    public ItemStack removeItemNoUpdate(int slot) {
+        ItemStack result = ContainerHelper.takeItem(blueprintInventory, slot);
+        if (!result.isEmpty()) {
+            needsStructureRefresh = true;
+        }
+        return result;
+    }
+
+    @Override
+    public void setItem(int slot, ItemStack stack) {
+        ItemStack normalized = stack.copy();
+        normalized.limitSize(getMaxStackSize(normalized));
+        blueprintInventory.set(slot, normalized);
+        getBlueprintMachineId().ifPresent(this::setMachineId);
+        needsStructureRefresh = true;
+        markForSync();
+    }
+
+    @Override
+    public boolean canPlaceItem(int slot, ItemStack stack) {
+        return stack.isEmpty() || stack.getItem() instanceof MmceBlueprintItem;
+    }
+
+    @Override
+    public int getMaxStackSize() {
+        return 1;
+    }
+
+    @Override
+    public int getMaxStackSize(ItemStack stack) {
+        return 1;
+    }
+
+    @Override
+    public boolean stillValid(Player player) {
+        return Container.stillValidBlockEntity(this, player);
+    }
+
+    @Override
+    public void clearContent() {
+        blueprintInventory.clear();
+        needsStructureRefresh = true;
+        markForSync();
     }
 
     protected static String normalizeModifierKey(String key) {

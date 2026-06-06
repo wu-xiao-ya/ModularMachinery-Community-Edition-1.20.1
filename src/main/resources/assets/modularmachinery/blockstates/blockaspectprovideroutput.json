@@ -3,7 +3,7 @@
   "defaults":
   {
     "transform": "forge:default-block",
-    "model": "modularmachinery:blockaspectprovideroutput"
+    "model": "modularmachinery:block/blockaspectprovideroutput"
   },
   "variants": {
     "normal": [{}], "inventory": [{}]
