@@ -1,9 +1,7 @@
 {
-  "defaults": {
-    "model": "modularmachinery:block/blockmepatternprovider"
-  },
   "variants": {
-    "inventory": { "model": "modularmachinery:block/blockmepatternprovider" },
-    "normal": { "model": "modularmachinery:block/blockmepatternprovider"}
+    "": {
+      "model": "modularmachinery:block/blockmepatternprovider"
+    }
   }
 }

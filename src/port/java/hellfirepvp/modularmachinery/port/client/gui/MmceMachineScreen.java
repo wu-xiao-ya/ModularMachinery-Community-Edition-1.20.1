@@ -1,6 +1,7 @@
 package hellfirepvp.modularmachinery.port.client.gui;
 
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
+import hellfirepvp.modularmachinery.port.blockentity.FactoryControllerBlockEntity;
 import hellfirepvp.modularmachinery.port.blockentity.FluidHatchBlockEntity;
 import hellfirepvp.modularmachinery.port.blockentity.SmartInterfaceBlockEntity;
 import hellfirepvp.modularmachinery.port.data.MmceDataRegistry;
@@ -53,6 +54,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     private Button smartPrevButton;
     private Button smartNextButton;
     private int smartInterfaceIndex;
+    private int factoryScroll;
 
     public MmceMachineScreen(MmceMachineMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -153,6 +155,17 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (menu.kind() == MmceMachineMenu.MachineMenuKind.FACTORY_CONTROLLER
+                && isHovering(8, 8, 96, 197, mouseX, mouseY)) {
+            factoryScroll -= (int) Math.signum(scrollY);
+            clampFactoryScroll();
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
     protected void containerTick() {
         if (menu.kind() == MmceMachineMenu.MachineMenuKind.SMART_INTERFACE) {
             clampSmartInterfaceIndex();
@@ -164,6 +177,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             }
             updateSmartInterfaceSuggestion();
         }
+        clampFactoryScroll();
     }
 
     @EventBusSubscriber(modid = ModularMachineryNeoForge.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
@@ -211,16 +225,57 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     }
 
     private void renderFactoryQueue(GuiGraphics guiGraphics, int left, int top) {
+        List<FactoryControllerBlockEntity.FactoryRunView> runs = menu.factoryRuns();
+        clampFactoryScroll();
         int rowY = top + 8;
-        int active = menu.working() ? Math.max(1, Math.min(6, menu.recipeProgress() > 0 ? 1 : 0)) : 0;
         for (int row = 0; row < 6; row++) {
             int y = rowY + row * 33;
             guiGraphics.blit(texture("guifactoryelements"), left + 8, y, 0.0F, 0.0F, 86, 32, 86, 32);
-            if (row < active) {
-                int progress = progressPixels(86);
-                guiGraphics.fill(left + 8, y, left + 8 + progress, y + 32, 0x663EE070);
+            int runIndex = factoryScroll + row;
+            if (runIndex >= runs.size()) {
+                continue;
             }
+            renderFactoryRun(guiGraphics, runs.get(runIndex), left + 8, y, runIndex);
         }
+        if (runs.size() > 6) {
+            renderFactoryScrollbar(guiGraphics, left, top, runs.size());
+        }
+    }
+
+    private void renderFactoryRun(GuiGraphics guiGraphics, FactoryControllerBlockEntity.FactoryRunView run, int x, int y, int index) {
+        int accent = run.coreThread() ? 0xAA5AA8FF : run.working() ? 0xAA4FDB7A : 0xAA8D3D3D;
+        guiGraphics.fill(x + 1, y + 1, x + 4, y + 31, accent);
+        if (run.activeRecipeId() != null && run.totalTime() > 0) {
+            int progress = Math.max(1, Math.min(82, (int) ((long) run.progress() * 82L / Math.max(1, run.totalTime()))));
+            int progressColor = run.working() ? 0x773EE070 : 0x667B8790;
+            guiGraphics.fill(x + 4, y + 26, x + 4 + progress, y + 30, progressColor);
+        }
+
+        String thread = run.coreThread()
+                ? (run.threadName().isBlank() ? "Core" : run.threadName())
+                : "Thread " + (index + 1);
+        String status = run.status().displayName();
+        int statusColor = run.working() ? 0xFF66E08F : run.activeRecipeId() == null ? 0xFFFF6D6D : 0xFFFFC857;
+        drawTrimmed(guiGraphics, thread, x + 7, y + 4, 50, run.coreThread() ? 0xFF9FCBFF : TEXT);
+        drawTrimmed(guiGraphics, status, x + 58, y + 4, 27, statusColor);
+
+        String recipe = run.activeRecipeId() == null ? "No recipe" : run.activeRecipeId().getPath();
+        drawTrimmed(guiGraphics, recipe, x + 7, y + 14, 80, MUTED_TEXT);
+        String progressText = run.activeRecipeId() == null
+                ? "Idle"
+                : run.progress() + "/" + Math.max(1, run.totalTime()) + "t x" + run.parallelism();
+        drawTrimmed(guiGraphics, progressText, x + 7, y + 23, 80, TEXT);
+    }
+
+    private void renderFactoryScrollbar(GuiGraphics guiGraphics, int left, int top, int runCount) {
+        int trackX = left + 96;
+        int trackY = top + 8;
+        int trackHeight = 197;
+        guiGraphics.fill(trackX, trackY, trackX + 4, trackY + trackHeight, 0x66384449);
+        int maxScroll = Math.max(1, runCount - 6);
+        int thumbHeight = Math.max(18, trackHeight * 6 / runCount);
+        int thumbY = trackY + (trackHeight - thumbHeight) * factoryScroll / maxScroll;
+        guiGraphics.fill(trackX, thumbY, trackX + 4, thumbY + thumbHeight, 0xFF8EA7B4);
     }
 
     private void renderEnergyBar(GuiGraphics guiGraphics, int left, int top) {
@@ -476,6 +531,19 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             smartInterfaceIndex = 0;
         } else if (smartInterfaceIndex >= count) {
             smartInterfaceIndex = count - 1;
+        }
+    }
+
+    private void clampFactoryScroll() {
+        if (menu.kind() != MmceMachineMenu.MachineMenuKind.FACTORY_CONTROLLER) {
+            factoryScroll = 0;
+            return;
+        }
+        int maxScroll = Math.max(0, menu.factoryRuns().size() - 6);
+        if (factoryScroll < 0) {
+            factoryScroll = 0;
+        } else if (factoryScroll > maxScroll) {
+            factoryScroll = maxScroll;
         }
     }
 

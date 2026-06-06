@@ -1,1 +1,7 @@
-{"variants": {"normal": {"model": "modularmachinery:block/blockgridprovideroutput"}}}
+{
+  "variants": {
+    "": {
+      "model": "modularmachinery:block/blockgridprovideroutput"
+    }
+  }
+}

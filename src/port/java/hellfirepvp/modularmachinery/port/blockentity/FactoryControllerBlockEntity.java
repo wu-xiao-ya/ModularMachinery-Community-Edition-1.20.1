@@ -165,10 +165,56 @@ public final class FactoryControllerBlockEntity extends MachineControllerBlockEn
         return totalParallelism > 0 ? totalParallelism : super.getActiveRecipeParallelism();
     }
 
+    public List<FactoryRunView> factoryRunViews() {
+        List<FactoryRunView> views = new ArrayList<>(coreFactoryRuns.size() + factoryRuns.size());
+        coreFactoryRuns.values().forEach(run -> views.add(factoryRunView(run)));
+        factoryRuns.forEach(run -> views.add(factoryRunView(run)));
+        return List.copyOf(views);
+    }
+
+    public int factoryActiveRunCount() {
+        return activeRunCount();
+    }
+
+    public int factoryRegularActiveRunCount() {
+        return regularActiveRunCount();
+    }
+
+    public int factoryWorkingRunCount() {
+        return workingRunCount();
+    }
+
+    public int factoryMaxThreads() {
+        return getMachineId()
+                .flatMap(MmceDataRegistry::getMachine)
+                .map(MmceMachineDefinition::maxThreads)
+                .orElse(0);
+    }
+
     @Override
     public void clearActiveRecipe() {
         super.clearActiveRecipe();
         clearFactoryRuns();
+    }
+
+    private FactoryRunView factoryRunView(FactoryRun run) {
+        ResourceLocation recipeId = run.getActiveRecipeId().orElse(null);
+        int totalTime = recipeId == null
+                ? 0
+                : Optional.ofNullable(MmceDataRegistry.snapshot().recipes().get(recipeId))
+                .map(MmceRecipeDefinition::recipeTime)
+                .orElse(0);
+        return new FactoryRunView(
+                run.isCoreThread(),
+                run.threadName(),
+                recipeId,
+                run.getRecipeProgress(),
+                totalTime,
+                run.getActiveRecipeParallelism(),
+                run.isWorking(),
+                run.getRecipeStatus(),
+                run.getRecipeStatusDetail()
+        );
     }
 
     private void updateFactorySummary(MmceRecipeStatus fallbackStatus, String fallbackDetail, int maxThreads) {
@@ -384,6 +430,27 @@ public final class FactoryControllerBlockEntity extends MachineControllerBlockEn
         loadRuntimeModifiers(tag, "temporaryModifiers", run.temporaryModifiers);
         loadRuntimeModifiers(tag, "permanentModifiers", run.permanentModifiers);
         return Optional.of(run);
+    }
+
+    public record FactoryRunView(
+            boolean coreThread,
+            String threadName,
+            ResourceLocation activeRecipeId,
+            int progress,
+            int totalTime,
+            int parallelism,
+            boolean working,
+            MmceRecipeStatus status,
+            String detail
+    ) {
+        public FactoryRunView {
+            threadName = threadName == null ? "" : threadName;
+            progress = Math.max(0, progress);
+            totalTime = Math.max(0, totalTime);
+            parallelism = Math.max(1, parallelism);
+            status = status == null ? MmceRecipeStatus.IDLE : status;
+            detail = detail == null ? "" : detail;
+        }
     }
 
     private final class FactoryRun implements MmceRecipeExecutor.RecipeRun {

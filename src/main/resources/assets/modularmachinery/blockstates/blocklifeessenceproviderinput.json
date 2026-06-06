@@ -1,1 +1,7 @@
-{"variants": {"normal": {"model": "modularmachinery:block/blocklifeessenceproviderinput"}}}
+{
+  "variants": {
+    "": {
+      "model": "modularmachinery:block/blocklifeessenceproviderinput"
+    }
+  }
+}

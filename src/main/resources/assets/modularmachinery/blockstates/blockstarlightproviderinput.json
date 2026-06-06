@@ -1,1 +1,7 @@
-{"variants": {"normal": {"model": "modularmachinery:block/blockstarlightproviderinput"}}}
+{
+  "variants": {
+    "": {
+      "model": "modularmachinery:block/blockstarlightproviderinput"
+    }
+  }
+}

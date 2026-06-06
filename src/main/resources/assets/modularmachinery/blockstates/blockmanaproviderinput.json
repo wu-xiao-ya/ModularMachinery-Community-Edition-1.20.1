@@ -1,1 +1,7 @@
-{"variants": {"normal": {"model": "modularmachinery:block/blockmanaproviderinput"}}}
+{
+  "variants": {
+    "": {
+      "model": "modularmachinery:block/blockmanaproviderinput"
+    }
+  }
+}

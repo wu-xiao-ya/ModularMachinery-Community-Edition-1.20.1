@@ -1,8 +1,8 @@
 {
 	"credit": "Made with Blockbench",
 	"textures": {
-		"0": "modularmagic:blocks/aspectprovider",
-		"particle": "modularmagic:blocks/aspectprovider"
+		"0": "modularmagic:block/aspectprovider",
+		"particle": "modularmagic:block/aspectprovider"
 	},
 	"elements": [
 		{

@@ -1,1 +1,7 @@
-{"variants": {"normal": {"model": "modularmachinery:block/blockconstellationprovider"}}}
+{
+  "variants": {
+    "": {
+      "model": "modularmachinery:block/blockconstellationprovider"
+    }
+  }
+}

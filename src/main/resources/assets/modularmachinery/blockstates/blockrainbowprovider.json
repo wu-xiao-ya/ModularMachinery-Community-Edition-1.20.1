@@ -1,1 +1,7 @@
-{"variants": {"normal": {"model": "modularmachinery:block/blockrainbowprovider"}}}
+{
+  "variants": {
+    "": {
+      "model": "modularmachinery:block/blockrainbowprovider"
+    }
+  }
+}

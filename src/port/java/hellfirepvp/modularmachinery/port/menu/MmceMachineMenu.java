@@ -17,6 +17,7 @@ import hellfirepvp.modularmachinery.port.event.MmceEventRegistry;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeRegistry;
 import hellfirepvp.modularmachinery.port.machine.MmceStructureMatcher;
+import hellfirepvp.modularmachinery.port.network.MmceFactoryRunsPayload;
 import hellfirepvp.modularmachinery.port.recipe.MmceRecipeStatus;
 import hellfirepvp.modularmachinery.port.registry.MmceMenus;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class MmceMachineMenu extends AbstractContainerMenu {
     public static final int BUTTON_REFRESH_STRUCTURE = 0;
@@ -80,6 +82,13 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     private final int imageHeight;
     private final int[] clientData = new int[DATA_COUNT];
     private final boolean clientSide;
+    private List<FactoryControllerBlockEntity.FactoryRunView> factoryRuns = List.of();
+    private int factoryActiveRuns;
+    private int factoryWorkingRuns;
+    private int factoryRegularActiveRuns;
+    private int factoryMaxThreads;
+    private int factoryTotalParallelism;
+    private String lastFactorySignature = "";
 
     public static MmceMachineMenu fromNetwork(int containerId, Inventory playerInventory, RegistryFriendlyByteBuf data) {
         BlockPos pos = data == null ? BlockPos.ZERO : data.readBlockPos();
@@ -226,11 +235,48 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         return index >= 0 && index < bindings.size() ? bindings.get(index) : null;
     }
 
+    public List<FactoryControllerBlockEntity.FactoryRunView> factoryRuns() {
+        if (!clientSide && blockEntity instanceof FactoryControllerBlockEntity factory) {
+            return factory.factoryRunViews();
+        }
+        return factoryRuns;
+    }
+
+    public int factoryActiveRuns() {
+        return clientSide ? factoryActiveRuns : blockEntity instanceof FactoryControllerBlockEntity factory ? factory.factoryActiveRunCount() : 0;
+    }
+
+    public int factoryWorkingRuns() {
+        return clientSide ? factoryWorkingRuns : blockEntity instanceof FactoryControllerBlockEntity factory ? factory.factoryWorkingRunCount() : 0;
+    }
+
+    public int factoryRegularActiveRuns() {
+        return clientSide ? factoryRegularActiveRuns : blockEntity instanceof FactoryControllerBlockEntity factory ? factory.factoryRegularActiveRunCount() : 0;
+    }
+
+    public int factoryMaxThreads() {
+        return clientSide ? factoryMaxThreads : blockEntity instanceof FactoryControllerBlockEntity factory ? factory.factoryMaxThreads() : 0;
+    }
+
+    public int factoryTotalParallelism() {
+        return clientSide ? factoryTotalParallelism : data(DATA_D);
+    }
+
+    public void updateFactoryRuns(MmceFactoryRunsPayload payload) {
+        factoryRuns = payload.runs();
+        factoryActiveRuns = payload.activeRuns();
+        factoryWorkingRuns = payload.workingRuns();
+        factoryRegularActiveRuns = payload.regularActiveRuns();
+        factoryMaxThreads = payload.maxThreads();
+        factoryTotalParallelism = payload.totalParallelism();
+    }
+
     public List<Component> statusLines() {
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal("Position: " + blockPos.getX() + ", " + blockPos.getY() + ", " + blockPos.getZ()));
         switch (kind()) {
-            case CONTROLLER, FACTORY_CONTROLLER -> addControllerLines(lines);
+            case CONTROLLER -> addControllerLines(lines);
+            case FACTORY_CONTROLLER -> addFactoryControllerLines(lines);
             case ITEM_INPUT_BUS, ITEM_OUTPUT_BUS -> {
                 lines.add(Component.literal(data(DATA_A) == 1 ? "Mode: Item input" : "Mode: Item output"));
                 lines.add(Component.literal("Slots: " + data(DATA_B)));
@@ -290,6 +336,12 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         }
         slot.onTake(player, stack);
         return original;
+    }
+
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        sendFactoryRunsIfChanged();
     }
 
     @Override
@@ -398,6 +450,29 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
                 lines.add(Component.literal(" - " + match.name()
                         + ": size=" + match.size()
                         + ", facing=" + match.facing().getSerializedName()));
+            }
+        }
+    }
+
+    private void addFactoryControllerLines(List<Component> lines) {
+        MachineControllerBlockEntity controller = blockEntity instanceof MachineControllerBlockEntity value ? value : null;
+        String machine = controller == null ? "none" : controller.getMachineId().map(ResourceLocation::toString).orElse("none");
+        String detail = controller == null ? "" : controller.getRecipeStatusDetail();
+        lines.add(Component.literal("Machine: " + machine));
+        lines.add(Component.literal("Status: " + statusFromData().displayName() + (detail.isBlank() ? "" : " | " + detail)));
+        lines.add(Component.literal("Threads: " + factoryRegularActiveRuns() + "/" + factoryMaxThreads()
+                + " regular, " + factoryActiveRuns() + " active, " + factoryWorkingRuns() + " running"));
+        lines.add(Component.literal("Parallelism: " + Math.max(1, factoryTotalParallelism())));
+        lines.add(Component.literal("Components: " + data(DATA_F) + " | Modifiers: " + data(DATA_G)));
+        if (controller != null) {
+            MmceControllerGUIRenderEvent event = MmceEventRegistry.postMachine(
+                    new MmceControllerGUIRenderEvent(controller, controller.getMachineId().orElse(null)));
+            if (event != null) {
+                for (String extraLine : event.extraInfo()) {
+                    if (!extraLine.isBlank()) {
+                        lines.add(Component.literal(extraLine));
+                    }
+                }
             }
         }
     }
@@ -559,6 +634,51 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
             };
         }
         return 0;
+    }
+
+    private void sendFactoryRunsIfChanged() {
+        if (clientSide || !(blockEntity instanceof FactoryControllerBlockEntity factory)
+                || !(playerInventory.player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        List<FactoryControllerBlockEntity.FactoryRunView> runs = factory.factoryRunViews();
+        String signature = factorySignature(factory, runs);
+        if (signature.equals(lastFactorySignature)) {
+            return;
+        }
+        lastFactorySignature = signature;
+        PacketDistributor.sendToPlayer(serverPlayer, new MmceFactoryRunsPayload(
+                blockPos,
+                containerId,
+                runs,
+                factory.factoryActiveRunCount(),
+                factory.factoryWorkingRunCount(),
+                factory.factoryRegularActiveRunCount(),
+                factory.factoryMaxThreads(),
+                factory.getActiveRecipeParallelism()
+        ));
+    }
+
+    private static String factorySignature(FactoryControllerBlockEntity factory, List<FactoryControllerBlockEntity.FactoryRunView> runs) {
+        StringBuilder builder = new StringBuilder()
+                .append(factory.factoryActiveRunCount()).append('|')
+                .append(factory.factoryWorkingRunCount()).append('|')
+                .append(factory.factoryRegularActiveRunCount()).append('|')
+                .append(factory.factoryMaxThreads()).append('|')
+                .append(factory.getActiveRecipeParallelism());
+        for (FactoryControllerBlockEntity.FactoryRunView run : runs) {
+            builder.append('|')
+                    .append(run.coreThread()).append(',')
+                    .append(run.threadName()).append(',')
+                    .append(run.activeRecipeId()).append(',')
+                    .append(run.progress()).append('/')
+                    .append(run.totalTime()).append(',')
+                    .append(run.parallelism()).append(',')
+                    .append(run.working()).append(',')
+                    .append(run.status().ordinal()).append(',')
+                    .append(run.detail());
+        }
+        return builder.toString();
     }
 
     private static int parallelButtonDelta(int id) {
