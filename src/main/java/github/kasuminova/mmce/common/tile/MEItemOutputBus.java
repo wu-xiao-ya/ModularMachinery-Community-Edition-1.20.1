@@ -1,0 +1,200 @@
+package github.kasuminova.mmce.common.tile;
+
+import appeng.api.networking.IGridNode;
+import appeng.api.networking.ticking.TickRateModulation;
+import appeng.api.networking.ticking.TickingRequest;
+import appeng.api.storage.IMEMonitor;
+import appeng.api.storage.data.IAEItemStack;
+import appeng.me.GridAccessException;
+import appeng.util.Platform;
+import github.kasuminova.mmce.common.tile.base.MEItemBus;
+import hellfirepvp.modularmachinery.common.lib.ItemsMM;
+import hellfirepvp.modularmachinery.common.machine.IOType;
+import hellfirepvp.modularmachinery.common.machine.MachineComponent;
+import hellfirepvp.modularmachinery.common.util.IOInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.concurrent.locks.ReadWriteLock;
+
+public class MEItemOutputBus extends MEItemBus implements SettingsTransfer {
+
+    private int configuredStackSize;
+
+    @Override
+    public IOInventory buildInventory() {
+        int size = 36;
+
+        int[] slotIDs = new int[size];
+        for (int slotID = 0; slotID < slotIDs.length; slotID++) {
+            slotIDs[slotID] = slotID;
+        }
+        IOInventory inv = new IOInventory(this, new int[0], slotIDs);
+        configuredStackSize = Integer.MAX_VALUE;
+        inv.setStackLimit(this.configuredStackSize, slotIDs);
+        inv.setListener(slot -> {
+            synchronized (this) {
+                changedSlots[slot] = true;
+            }
+        });
+        return inv;
+    }
+
+    @Override
+    public ItemStack getVisualItemStack() {
+        return new ItemStack(ItemsMM.meItemOutputBus);
+    }
+
+    @Nullable
+    @Override
+    public MachineComponent.ItemBus provideComponent() {
+        return new MachineComponent.ItemBus(IOType.OUTPUT) {
+            @Override
+            public IOInventory getContainerProvider() {
+                return inventory;
+            }
+        };
+    }
+
+    @Nonnull
+    @Override
+    public TickingRequest getTickingRequest(@Nonnull final IGridNode node) {
+        return new TickingRequest(5, 60, !hasItem(), true);
+    }
+
+    @Nonnull
+    @Override
+    public TickRateModulation tickingRequest(@Nonnull final IGridNode node, final int ticksSinceLastCall) {
+        if (!proxy.isActive()) {
+            return TickRateModulation.IDLE;
+        }
+
+        int[] needUpdateSlots = getNeedUpdateSlots();
+        if (needUpdateSlots.length == 0) {
+            return TickRateModulation.SLOWER;
+        }
+
+        inTick = true;
+        boolean successAtLeastOnce = false;
+
+        ReadWriteLock rwLock = inventory.getRWLock();
+
+        try {
+            rwLock.writeLock().lock();
+
+            IMEMonitor<IAEItemStack> inv = proxy.getStorage().getInventory(channel);
+            for (final int slot : needUpdateSlots) {
+                changedSlots[slot] = false;
+                ItemStack stack = inventory.getStackInSlot(slot);
+                if (stack.isEmpty()) {
+                    continue;
+                }
+
+                ItemStack extracted = inventory.extractItem(slot, stack.getCount(), false);
+
+                IAEItemStack aeStack = channel.createStack(extracted);
+                if (aeStack == null) {
+                    continue;
+                }
+
+                IAEItemStack left = Platform.poweredInsert(proxy.getEnergy(), inv, aeStack, source);
+
+                if (left != null) {
+                    inventory.setStackInSlot(slot, left.createItemStack());
+
+                    if (aeStack.getStackSize() != left.getStackSize()) {
+                        successAtLeastOnce = true;
+                        failureCounter[slot] = 0;
+                    } else {
+                        failureCounter[slot] = Math.min(failureCounter[slot] + 1, 10);
+                    }
+                } else {
+                    successAtLeastOnce = true;
+                    failureCounter[slot] = 0;
+                }
+            }
+
+            inTick = false;
+            rwLock.writeLock().unlock();
+            return successAtLeastOnce ? TickRateModulation.FASTER : TickRateModulation.SLOWER;
+        } catch (GridAccessException e) {
+            inTick = false;
+            changedSlots = new boolean[changedSlots.length];
+            rwLock.writeLock().unlock();
+            return TickRateModulation.IDLE;
+        }
+    }
+
+    @Override
+    public void markNoUpdate() {
+        if (hasChangedSlots()) {
+            try {
+                proxy.getTick().alertDevice(proxy.getNode());
+            } catch (GridAccessException e) {
+                // NO-OP
+            }
+        }
+
+        super.markNoUpdate();
+    }
+
+    public int getConfiguredStackSize() {
+        return this.configuredStackSize;
+    }
+
+    public void setConfiguredStackSize(int size) {
+        this.configuredStackSize = Math.max(1, size);
+        this.applyStackSizeToInventory();
+        this.markForUpdate();
+    }
+
+    private void applyStackSizeToInventory() {
+        if (this.inventory != null) {
+            int[] slotIDs = new int[this.inventory.getSlots()];
+            for (int slotID = 0; slotID < slotIDs.length; slotID++) {
+                slotIDs[slotID] = slotID;
+            }
+            this.inventory.setStackLimit(this.configuredStackSize, slotIDs);
+        }
+    }
+
+    @Override
+    public void readCustomNBT(final NBTTagCompound compound) {
+        super.readCustomNBT(compound);
+
+        if (compound.hasKey("configuredStackSize")) {
+            this.configuredStackSize = compound.getInteger("configuredStackSize");
+        }
+
+        this.applyStackSizeToInventory();
+    }
+
+    @Override
+    public void writeCustomNBT(final NBTTagCompound compound) {
+        super.writeCustomNBT(compound);
+
+        compound.setInteger("configuredStackSize", this.configuredStackSize);
+    }
+
+    @Override
+    public NBTTagCompound downloadSettings() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setInteger("configuredStackSize", this.configuredStackSize);
+        return tag;
+    }
+
+    @Override
+    public void uploadSettings(NBTTagCompound settings) {
+        if (settings.hasKey("configuredStackSize")) {
+            setConfiguredStackSize(settings.getInteger("configuredStackSize"));
+
+            try {
+                proxy.getTick().alertDevice(proxy.getNode());
+            } catch (GridAccessException e) {
+                // NO-OP
+            }
+        }
+    }
+}

@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "size=tiny": { "model": "modularmachinery:blockfluidprocessorhatch_tiny" },
+    "size=small": { "model": "modularmachinery:blockfluidprocessorhatch_small" },
+    "size=normal": { "model": "modularmachinery:blockfluidprocessorhatch_normal" },
+    "size=reinforced": { "model": "modularmachinery:blockfluidprocessorhatch_reinforced" },
+    "size=big": { "model": "modularmachinery:blockfluidprocessorhatch_big" },
+    "size=huge": { "model": "modularmachinery:blockfluidprocessorhatch_huge" },
+    "size=ludicrous": { "model": "modularmachinery:blockfluidprocessorhatch_ludicrous" },
+    "size=vacuum": { "model": "modularmachinery:blockfluidprocessorhatch_vacuum" }
+  }
+}
