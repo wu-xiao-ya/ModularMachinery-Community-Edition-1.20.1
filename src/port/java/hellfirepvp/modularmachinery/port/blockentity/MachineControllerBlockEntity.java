@@ -211,8 +211,23 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity {
     }
 
     @ZenCodeType.Method
+    public MmceMachineUpgrade findMachineUpgrade(String upgradeName) {
+        return getMachineUpgrade(upgradeName);
+    }
+
+    @ZenCodeType.Method
+    public MmceMachineUpgrade getMachineUpgradeOrNull(String upgradeName) {
+        return getMachineUpgrade(upgradeName);
+    }
+
+    @ZenCodeType.Method
     public MmceMachineUpgrade[] getFoundUpgrades() {
         return MmceMachineUpgradeRegistry.installedUpgrades(this).toArray(MmceMachineUpgrade[]::new);
+    }
+
+    @ZenCodeType.Method
+    public MmceMachineUpgrade[] getMachineUpgrades() {
+        return getFoundUpgrades();
     }
 
     public void clearTemporaryModifiers() {

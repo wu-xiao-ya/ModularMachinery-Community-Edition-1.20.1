@@ -9,15 +9,25 @@ import hellfirepvp.modularmachinery.port.event.MmceControllerButtonClickEvent;
 import hellfirepvp.modularmachinery.port.event.MmceControllerGUIRenderEvent;
 import hellfirepvp.modularmachinery.port.event.MmceEventPhase;
 import hellfirepvp.modularmachinery.port.event.MmceEventRegistry;
+import hellfirepvp.modularmachinery.port.event.MmceFactoryRecipeFailureEvent;
+import hellfirepvp.modularmachinery.port.event.MmceFactoryRecipeFinishEvent;
+import hellfirepvp.modularmachinery.port.event.MmceFactoryRecipeStartEvent;
+import hellfirepvp.modularmachinery.port.event.MmceFactoryRecipeTickEvent;
 import hellfirepvp.modularmachinery.port.event.MmceMachineEvent;
 import hellfirepvp.modularmachinery.port.event.MmceMachineEventHandler;
 import hellfirepvp.modularmachinery.port.event.MmceMachineEventType;
+import hellfirepvp.modularmachinery.port.event.MmceMachineStructureFormedEvent;
+import hellfirepvp.modularmachinery.port.event.MmceMachineStructureUpdateEvent;
 import hellfirepvp.modularmachinery.port.event.MmceMachineTickEvent;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeCheckEvent;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeEventHandler;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeEventType;
+import hellfirepvp.modularmachinery.port.event.MmceRecipeFailureEvent;
+import hellfirepvp.modularmachinery.port.event.MmceRecipeFinishEvent;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeStartEvent;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeTickEvent;
+import hellfirepvp.modularmachinery.port.event.MmceResultChanceCreateEvent;
+import hellfirepvp.modularmachinery.port.event.MmceSmartInterfaceUpdateEvent;
 import hellfirepvp.modularmachinery.port.integration.MmceBlockCheckerRegistry;
 import hellfirepvp.modularmachinery.port.integration.MmceItemCallbackRegistry;
 import hellfirepvp.modularmachinery.port.integration.MmceItemChecker;
@@ -798,8 +808,40 @@ public final class MmceKubeJSBindings {
         return MmceKubeJSEvents.asRecipeTickEvent(event);
     }
 
+    public static MmceRecipeFailureEvent asRecipeFailureEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asRecipeFailureEvent(event);
+    }
+
+    public static MmceRecipeFinishEvent asRecipeFinishEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asRecipeFinishEvent(event);
+    }
+
+    public static MmceResultChanceCreateEvent asResultChanceCreateEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asResultChanceCreateEvent(event);
+    }
+
+    public static MmceMachineStructureFormedEvent asMachineStructureFormedEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asMachineStructureFormedEvent(event);
+    }
+
+    public static MmceMachineStructureFormedEvent asStructureFormedEvent(MmceMachineEvent event) {
+        return asMachineStructureFormedEvent(event);
+    }
+
+    public static MmceMachineStructureUpdateEvent asMachineStructureUpdateEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asMachineStructureUpdateEvent(event);
+    }
+
+    public static MmceMachineStructureUpdateEvent asStructureUpdateEvent(MmceMachineEvent event) {
+        return asMachineStructureUpdateEvent(event);
+    }
+
     public static MmceMachineTickEvent asMachineTickEvent(MmceMachineEvent event) {
         return MmceKubeJSEvents.asMachineTickEvent(event);
+    }
+
+    public static MmceSmartInterfaceUpdateEvent asSmartInterfaceUpdateEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asSmartInterfaceUpdateEvent(event);
     }
 
     public static MmceControllerButtonClickEvent asControllerButtonClickEvent(MmceMachineEvent event) {
@@ -808,6 +850,22 @@ public final class MmceKubeJSBindings {
 
     public static MmceControllerGUIRenderEvent asControllerGUIRenderEvent(MmceMachineEvent event) {
         return MmceKubeJSEvents.asControllerGUIRenderEvent(event);
+    }
+
+    public static MmceFactoryRecipeStartEvent asFactoryRecipeStartEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asFactoryRecipeStartEvent(event);
+    }
+
+    public static MmceFactoryRecipeTickEvent asFactoryRecipeTickEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asFactoryRecipeTickEvent(event);
+    }
+
+    public static MmceFactoryRecipeFailureEvent asFactoryRecipeFailureEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asFactoryRecipeFailureEvent(event);
+    }
+
+    public static MmceFactoryRecipeFinishEvent asFactoryRecipeFinishEvent(MmceMachineEvent event) {
+        return MmceKubeJSEvents.asFactoryRecipeFinishEvent(event);
     }
 
     public static MmceRecipeCheckEvent castToRecipeCheckEvent(MmceMachineEvent event) {
@@ -820,6 +878,66 @@ public final class MmceKubeJSBindings {
 
     public static MmceRecipeTickEvent castToRecipeTickEvent(MmceMachineEvent event) {
         return asRecipeTickEvent(event);
+    }
+
+    public static MmceRecipeFailureEvent castToRecipeFailureEvent(MmceMachineEvent event) {
+        return asRecipeFailureEvent(event);
+    }
+
+    public static MmceRecipeFinishEvent castToRecipeFinishEvent(MmceMachineEvent event) {
+        return asRecipeFinishEvent(event);
+    }
+
+    public static MmceResultChanceCreateEvent castToResultChanceCreateEvent(MmceMachineEvent event) {
+        return asResultChanceCreateEvent(event);
+    }
+
+    public static MmceMachineStructureFormedEvent castToMachineStructureFormedEvent(MmceMachineEvent event) {
+        return asMachineStructureFormedEvent(event);
+    }
+
+    public static MmceMachineStructureFormedEvent castToStructureFormedEvent(MmceMachineEvent event) {
+        return asMachineStructureFormedEvent(event);
+    }
+
+    public static MmceMachineStructureUpdateEvent castToMachineStructureUpdateEvent(MmceMachineEvent event) {
+        return asMachineStructureUpdateEvent(event);
+    }
+
+    public static MmceMachineStructureUpdateEvent castToStructureUpdateEvent(MmceMachineEvent event) {
+        return asMachineStructureUpdateEvent(event);
+    }
+
+    public static MmceMachineTickEvent castToMachineTickEvent(MmceMachineEvent event) {
+        return asMachineTickEvent(event);
+    }
+
+    public static MmceSmartInterfaceUpdateEvent castToSmartInterfaceUpdateEvent(MmceMachineEvent event) {
+        return asSmartInterfaceUpdateEvent(event);
+    }
+
+    public static MmceControllerButtonClickEvent castToControllerButtonClickEvent(MmceMachineEvent event) {
+        return asControllerButtonClickEvent(event);
+    }
+
+    public static MmceControllerGUIRenderEvent castToControllerGUIRenderEvent(MmceMachineEvent event) {
+        return asControllerGUIRenderEvent(event);
+    }
+
+    public static MmceFactoryRecipeStartEvent castToFactoryRecipeStartEvent(MmceMachineEvent event) {
+        return asFactoryRecipeStartEvent(event);
+    }
+
+    public static MmceFactoryRecipeTickEvent castToFactoryRecipeTickEvent(MmceMachineEvent event) {
+        return asFactoryRecipeTickEvent(event);
+    }
+
+    public static MmceFactoryRecipeFailureEvent castToFactoryRecipeFailureEvent(MmceMachineEvent event) {
+        return asFactoryRecipeFailureEvent(event);
+    }
+
+    public static MmceFactoryRecipeFinishEvent castToFactoryRecipeFinishEvent(MmceMachineEvent event) {
+        return asFactoryRecipeFinishEvent(event);
     }
 
     private static ResourceLocation scriptSourceId(String directory, String sourceName) {
