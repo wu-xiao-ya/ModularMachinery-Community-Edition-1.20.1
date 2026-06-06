@@ -75,13 +75,13 @@ public final class MmceCTMachineUpgradeHelper {
     }
 
     @ZenCodeType.Method
-    public static MmceMachineUpgrade castToSimpleMachineUpgrade(MmceMachineUpgrade upgrade) {
-        return upgrade;
+    public static MmceCTSimpleMachineUpgrade castToSimpleMachineUpgrade(MmceMachineUpgrade upgrade) {
+        return MmceCTSimpleMachineUpgrade.of(upgrade);
     }
 
     @ZenCodeType.Method
-    public static MmceMachineUpgrade castToSimpleDynamicMachineUpgrade(MmceMachineUpgrade upgrade) {
-        return upgrade;
+    public static MmceCTSimpleDynamicMachineUpgrade castToSimpleDynamicMachineUpgrade(MmceMachineUpgrade upgrade) {
+        return MmceCTSimpleDynamicMachineUpgrade.of(upgrade);
     }
 
     private MmceCTMachineUpgradeHelper() {

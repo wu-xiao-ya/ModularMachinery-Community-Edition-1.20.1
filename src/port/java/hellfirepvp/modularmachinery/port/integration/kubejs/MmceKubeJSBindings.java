@@ -35,6 +35,7 @@ import hellfirepvp.modularmachinery.port.integration.MmceItemChecker;
 import hellfirepvp.modularmachinery.port.integration.MmceItemModifier;
 import hellfirepvp.modularmachinery.port.integration.MmceDynamicMachineUpgradeBuilder;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineDefinitionPatcher;
+import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeHelper;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeBuilder;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeRegistry;
@@ -407,8 +408,20 @@ public final class MmceKubeJSBindings {
         MmceMachineUpgradeHelper.addFixedUpgrade(stack, upgradeName);
     }
 
+    public static void addFixedUpgrade(net.minecraft.world.item.ItemStack stack, MmceMachineUpgrade upgrade) {
+        if (upgrade != null) {
+            addFixedUpgrade(stack, upgrade.getName());
+        }
+    }
+
     public static void addFixedUpgrade(String itemId, String upgradeName) {
         MmceMachineUpgradeHelper.addFixedUpgrade(itemId, upgradeName);
+    }
+
+    public static void addFixedUpgrade(String itemId, MmceMachineUpgrade upgrade) {
+        if (upgrade != null) {
+            addFixedUpgrade(itemId, upgrade.getName());
+        }
     }
 
     public static net.minecraft.world.item.ItemStack addUpgradeToItemStack(net.minecraft.world.item.ItemStack stack, String upgradeName) {
@@ -425,6 +438,33 @@ public final class MmceKubeJSBindings {
 
     public static boolean supportsUpgrade(String itemId) {
         return MmceMachineUpgradeHelper.supportsUpgrade(itemId);
+    }
+
+    public static boolean hasRegisteredUpgrade(String upgradeName) {
+        return MmceMachineUpgradeHelper.hasRegisteredUpgrade(upgradeName);
+    }
+
+    public static MmceMachineUpgrade getUpgrade(String upgradeName) {
+        return MmceMachineUpgradeRegistry.upgrade(upgradeName).orElse(null);
+    }
+
+    public static MmceMachineUpgrade machineUpgradeByName(String upgradeName) {
+        return getUpgrade(upgradeName);
+    }
+
+    public static MmceMachineUpgrade registryUpgrade(String upgradeName) {
+        return getUpgrade(upgradeName);
+    }
+
+    public static void registerUpgrade(String upgradeName, MmceMachineUpgrade upgrade) {
+        if (upgradeName != null && !upgradeName.isBlank() && upgrade != null) {
+            MmceMachineUpgradeRegistry.register(upgradeName, upgrade.data());
+        }
+    }
+
+    public static void clearRegistryUpgrades() {
+        MmceMachineUpgradeRegistry.clear();
+        MmceMachineUpgradeHelper.clear();
     }
 
     public static void onUpgradeStructureFormed(String upgradeName, MmceUpgradeEventHandler handler) {
