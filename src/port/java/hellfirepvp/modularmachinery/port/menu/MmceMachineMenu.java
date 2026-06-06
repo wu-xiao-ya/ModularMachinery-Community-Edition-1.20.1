@@ -56,16 +56,20 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     private static final int DATA_G = 10;
     private static final int DATA_H = 11;
 
-    private static final int MACHINE_SLOT_X = 8;
-    private static final int MACHINE_SLOT_Y = 48;
-    private static final int PLAYER_INV_X = 8;
+    private static final int DEFAULT_IMAGE_WIDTH = 176;
+    private static final int DEFAULT_IMAGE_HEIGHT = 166;
+    private static final int LARGE_IMAGE_HEIGHT = 213;
+    private static final int FACTORY_IMAGE_WIDTH = 280;
 
     private final Inventory playerInventory;
     private final BlockPos blockPos;
     private final BaseMachineBlockEntity blockEntity;
     private final Container machineContainer;
     private final int machineSlotCount;
+    private final MachineMenuKind fallbackKind;
+    private final int playerInventoryX;
     private final int playerInventoryY;
+    private final int imageWidth;
     private final int imageHeight;
     private final int[] clientData = new int[DATA_COUNT];
     private final boolean clientSide;
@@ -73,30 +77,35 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     public static MmceMachineMenu fromNetwork(int containerId, Inventory playerInventory, RegistryFriendlyByteBuf data) {
         BlockPos pos = data == null ? BlockPos.ZERO : data.readBlockPos();
         int fallbackSlots = data == null ? 0 : data.readVarInt();
+        MachineMenuKind fallbackKind = data != null && data.readableBytes() > 0
+                ? MachineMenuKind.byOrdinal(data.readVarInt())
+                : MachineMenuKind.UNKNOWN;
         Level level = playerInventory.player.level();
         BlockEntity blockEntity = level.getBlockEntity(pos);
         BaseMachineBlockEntity machineBlockEntity = blockEntity instanceof BaseMachineBlockEntity machine ? machine : null;
-        return new MmceMachineMenu(containerId, playerInventory, pos, machineBlockEntity, fallbackSlots);
+        return new MmceMachineMenu(containerId, playerInventory, pos, machineBlockEntity, fallbackSlots, fallbackKind);
     }
 
     public MmceMachineMenu(int containerId, Inventory playerInventory, BaseMachineBlockEntity blockEntity) {
-        this(containerId, playerInventory, blockEntity.getBlockPos(), blockEntity, slotCount(blockEntity));
+        this(containerId, playerInventory, blockEntity.getBlockPos(), blockEntity, slotCount(blockEntity), kindFor(blockEntity));
     }
 
     private MmceMachineMenu(int containerId, Inventory playerInventory, BlockPos blockPos,
-                            BaseMachineBlockEntity blockEntity, int fallbackSlots) {
+                            BaseMachineBlockEntity blockEntity, int fallbackSlots, MachineMenuKind fallbackKind) {
         super(MmceMenus.MACHINE.get(), containerId);
         this.playerInventory = playerInventory;
         this.blockPos = blockPos;
         this.blockEntity = blockEntity;
         this.clientSide = playerInventory.player.level().isClientSide();
+        this.fallbackKind = blockEntity == null ? fallbackKind : kindFor(blockEntity);
         this.machineContainer = blockEntity instanceof Container container
                 ? container
                 : new SimpleContainer(Math.max(0, fallbackSlots));
         this.machineSlotCount = machineContainer.getContainerSize();
-        int machineRows = machineRows(machineSlotCount);
-        this.playerInventoryY = machineSlotCount == 0 ? 102 : MACHINE_SLOT_Y + machineRows * 18 + 16;
-        this.imageHeight = playerInventoryY + 82;
+        this.imageWidth = imageWidthFor(this.fallbackKind);
+        this.imageHeight = imageHeightFor(this.fallbackKind);
+        this.playerInventoryX = playerInventoryXFor(this.fallbackKind);
+        this.playerInventoryY = playerInventoryYFor(this.fallbackKind);
 
         addMachineSlots();
         addPlayerInventorySlots();
@@ -114,6 +123,7 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
             ), buffer -> {
                 buffer.writeBlockPos(pos);
                 buffer.writeVarInt(slotCount(blockEntity));
+                buffer.writeVarInt(kindFor(blockEntity).ordinal());
             });
         }
         return net.minecraft.world.InteractionResult.sidedSuccess(level.isClientSide());
@@ -131,12 +141,21 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         return playerInventoryY;
     }
 
+    public int playerInventoryX() {
+        return playerInventoryX;
+    }
+
+    public int imageWidth() {
+        return imageWidth;
+    }
+
     public int imageHeight() {
         return imageHeight;
     }
 
     public MachineMenuKind kind() {
-        return MachineMenuKind.byOrdinal(data(DATA_KIND));
+        MachineMenuKind synchronizedKind = MachineMenuKind.byOrdinal(data(DATA_KIND));
+        return synchronizedKind == MachineMenuKind.UNKNOWN ? fallbackKind : synchronizedKind;
     }
 
     public boolean canRefreshStructure() {
@@ -232,8 +251,9 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
 
     private void addMachineSlots() {
         for (int slot = 0; slot < machineSlotCount; slot++) {
-            int x = MACHINE_SLOT_X + (slot % 9) * 18;
-            int y = MACHINE_SLOT_Y + (slot / 9) * 18;
+            SlotPosition position = machineSlotPosition(slot);
+            int x = position.x();
+            int y = position.y();
             addSlot(new MachineSlot(machineContainer, slot, x, y, canInsertIntoMachineSlots()));
         }
     }
@@ -242,11 +262,11 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(playerInventory, column + row * 9 + 9,
-                        PLAYER_INV_X + column * 18, playerInventoryY + row * 18));
+                        playerInventoryX + column * 18, playerInventoryY + row * 18));
             }
         }
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(playerInventory, column, PLAYER_INV_X + column * 18, playerInventoryY + 58));
+            addSlot(new Slot(playerInventory, column, playerInventoryX + column * 18, playerInventoryY + 58));
         }
     }
 
@@ -469,12 +489,56 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         return ordinal >= 0 && ordinal < values.length ? values[ordinal] : MmceRecipeStatus.IDLE;
     }
 
-    private static int machineRows(int slotCount) {
-        return slotCount <= 0 ? 0 : (slotCount + 8) / 9;
-    }
-
     private static int slotCount(BaseMachineBlockEntity blockEntity) {
         return blockEntity instanceof Container container ? container.getContainerSize() : 0;
+    }
+
+    private SlotPosition machineSlotPosition(int slot) {
+        return switch (fallbackKind) {
+            case ITEM_INPUT_BUS, ITEM_OUTPUT_BUS -> itemBusSlotPosition(slot, machineSlotCount);
+            case UPGRADE_BUS -> new SlotPosition(8 + (slot % 3) * 18, 17 + (slot / 3) * 18);
+            default -> new SlotPosition(8 + (slot % 9) * 18, 18 + (slot / 9) * 18);
+        };
+    }
+
+    private static SlotPosition itemBusSlotPosition(int slot, int slotCount) {
+        return switch (slotCount) {
+            case 1 -> new SlotPosition(81, 30);
+            case 4 -> new SlotPosition(70 + (slot % 2) * 18, 18 + (slot / 2) * 18);
+            case 6 -> new SlotPosition(61 + (slot % 3) * 18, 18 + (slot / 3) * 18);
+            case 9 -> new SlotPosition(61 + (slot % 3) * 18, 13 + (slot / 3) * 18);
+            case 12 -> new SlotPosition(52 + (slot % 4) * 18, 18 + (slot / 4) * 18);
+            case 16 -> new SlotPosition(53 + (slot % 4) * 18, 8 + (slot / 4) * 18);
+            case 32 -> new SlotPosition(17 + (slot % 8) * 18, 8 + (slot / 8) * 18);
+            default -> {
+                int columns = Math.max(1, Math.min(9, slotCount));
+                int x = (DEFAULT_IMAGE_WIDTH - columns * 18) / 2 + (slot % columns) * 18;
+                int y = 18 + (slot / columns) * 18;
+                yield new SlotPosition(x, y);
+            }
+        };
+    }
+
+    private static int imageWidthFor(MachineMenuKind kind) {
+        return kind == MachineMenuKind.FACTORY_CONTROLLER ? FACTORY_IMAGE_WIDTH : DEFAULT_IMAGE_WIDTH;
+    }
+
+    private static int imageHeightFor(MachineMenuKind kind) {
+        return switch (kind) {
+            case CONTROLLER, FACTORY_CONTROLLER, UPGRADE_BUS -> LARGE_IMAGE_HEIGHT;
+            default -> DEFAULT_IMAGE_HEIGHT;
+        };
+    }
+
+    private static int playerInventoryXFor(MachineMenuKind kind) {
+        return kind == MachineMenuKind.FACTORY_CONTROLLER ? 112 : 8;
+    }
+
+    private static int playerInventoryYFor(MachineMenuKind kind) {
+        return switch (kind) {
+            case CONTROLLER, FACTORY_CONTROLLER, UPGRADE_BUS -> 131;
+            default -> 84;
+        };
     }
 
     private static int low(long value) {
@@ -563,5 +627,8 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         public boolean mayPlace(ItemStack stack) {
             return allowPlace;
         }
+    }
+
+    private record SlotPosition(int x, int y) {
     }
 }

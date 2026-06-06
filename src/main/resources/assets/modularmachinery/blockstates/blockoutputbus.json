@@ -1,11 +1,11 @@
 {
     "variants": {
-        "size=tiny":       { "model":"modularmachinery:blockoutputbus_tiny" },
-        "size=small":      { "model":"modularmachinery:blockoutputbus_small" },
-        "size=normal":     { "model":"modularmachinery:blockoutputbus_normal" },
-        "size=reinforced": { "model":"modularmachinery:blockoutputbus_reinforced" },
-        "size=big":        { "model":"modularmachinery:blockoutputbus_big" },
-        "size=huge":       { "model":"modularmachinery:blockoutputbus_huge" },
-        "size=ludicrous":  { "model":"modularmachinery:blockoutputbus_ludicrous" }
+        "size=tiny":       { "model":"modularmachinery:block/blockoutputbus_tiny" },
+        "size=small":      { "model":"modularmachinery:block/blockoutputbus_small" },
+        "size=normal":     { "model":"modularmachinery:block/blockoutputbus_normal" },
+        "size=reinforced": { "model":"modularmachinery:block/blockoutputbus_reinforced" },
+        "size=big":        { "model":"modularmachinery:block/blockoutputbus_big" },
+        "size=huge":       { "model":"modularmachinery:block/blockoutputbus_huge" },
+        "size=ludicrous":  { "model":"modularmachinery:block/blockoutputbus_ludicrous" }
     }
 }

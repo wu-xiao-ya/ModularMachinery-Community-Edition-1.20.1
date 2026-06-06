@@ -1,6 +1,6 @@
 {
   "variants": {
-    "type=number": { "model":"modularmachinery:blocksmartinterface_number" },
-    "type=string": { "model":"modularmachinery:blocksmartinterface_string" }
+    "type=number": { "model":"modularmachinery:block/blocksmartinterface_number" },
+    "type=string": { "model":"modularmachinery:block/blocksmartinterface_string" }
   }
 }
