@@ -46,7 +46,6 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     private static final ResourceLocation GUI_FACTORY = texture("guifactory");
     private static final ResourceLocation GUI_FACTORY_ELEMENTS = texture("guifactoryelements");
     private static final ResourceLocation GUI_BAR = texture("guibar");
-    private static final ResourceLocation GUI_TANK = texture("guitank");
     private static final ResourceLocation GUI_EMPTY = texture("guismartinterface");
     private static final ResourceLocation GUI_UPGRADE_BUS = texture("guiupgradebus");
     private static final int BAR_X = 15;
@@ -718,7 +717,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             case FACTORY_CONTROLLER -> new TextureSpec(GUI_FACTORY, 280, 213);
             case ITEM_INPUT_BUS, ITEM_OUTPUT_BUS -> new TextureSpec(texture("inventory_" + inventorySizeName()), 256, 256);
             case FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH,
-                    ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> new TextureSpec(GUI_TANK, 256, 256);
+                    ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> new TextureSpec(GUI_BAR, 256, 256);
             case SMART_INTERFACE, PARALLEL_CONTROLLER -> new TextureSpec(GUI_EMPTY, 256, 256);
             case UPGRADE_BUS -> new TextureSpec(GUI_UPGRADE_BUS, 256, 256);
             default -> null;
