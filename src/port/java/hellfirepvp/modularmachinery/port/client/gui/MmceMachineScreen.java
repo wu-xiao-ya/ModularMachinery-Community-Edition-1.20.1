@@ -42,6 +42,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     private static final int MUTED_TEXT = 0xFFA9B6BC;
     private static final ResourceLocation GUI_CONTROLLER = texture("guicontroller_large");
     private static final ResourceLocation GUI_FACTORY = texture("guifactory");
+    private static final ResourceLocation GUI_FACTORY_ELEMENTS = texture("guifactoryelements");
     private static final ResourceLocation GUI_BAR = texture("guibar");
     private static final ResourceLocation GUI_EMPTY = texture("guismartinterface");
     private static final ResourceLocation GUI_UPGRADE_BUS = texture("guiupgradebus");
@@ -230,7 +231,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         int rowY = top + 8;
         for (int row = 0; row < 6; row++) {
             int y = rowY + row * 33;
-            guiGraphics.blit(texture("guifactoryelements"), left + 8, y, 0.0F, 0.0F, 86, 32, 86, 32);
+            guiGraphics.blit(GUI_FACTORY_ELEMENTS, left + 8, y, 0.0F, 0.0F, 86, 32, 256, 256);
             int runIndex = factoryScroll + row;
             if (runIndex >= runs.size()) {
                 continue;
