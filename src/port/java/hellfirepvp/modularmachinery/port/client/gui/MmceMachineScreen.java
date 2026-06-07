@@ -8,6 +8,7 @@ import hellfirepvp.modularmachinery.port.data.MmceDataRegistry;
 import hellfirepvp.modularmachinery.port.data.MmceMachineDefinition;
 import hellfirepvp.modularmachinery.port.menu.MmceMachineMenu;
 import hellfirepvp.modularmachinery.port.network.MmceFluidGuiInteractPayload;
+import hellfirepvp.modularmachinery.port.network.MmceGroupInputConfigPayload;
 import hellfirepvp.modularmachinery.port.network.MmceSmartInterfaceUpdatePayload;
 import hellfirepvp.modularmachinery.port.registry.MmceMenus;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     private static final ResourceLocation GUI_FACTORY = texture("guifactory");
     private static final ResourceLocation GUI_FACTORY_ELEMENTS = texture("guifactoryelements");
     private static final ResourceLocation GUI_BAR = texture("guibar");
+    private static final ResourceLocation GUI_TANK = texture("guitank");
     private static final ResourceLocation GUI_EMPTY = texture("guismartinterface");
     private static final ResourceLocation GUI_UPGRADE_BUS = texture("guiupgradebus");
     private static final int BAR_X = 15;
@@ -55,6 +57,8 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     private EditBox smartInterfaceBox;
     private Button smartPrevButton;
     private Button smartNextButton;
+    private EditBox groupIdBox;
+    private Button groupToggleButton;
     private int smartInterfaceIndex;
     private int factoryScroll;
 
@@ -82,6 +86,9 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         if (menu.kind() == MmceMachineMenu.MachineMenuKind.SMART_INTERFACE) {
             addSmartInterfaceWidgets();
         }
+        if (menu.canConfigureGroupInput()) {
+            addGroupInputWidgets();
+        }
     }
 
     @Override
@@ -95,6 +102,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         }
         guiGraphics.blit(texture.location(), left, top, 0.0F, 0.0F, imageWidth, imageHeight,
                 texture.width(), texture.height());
+        renderGroupInputPanel(guiGraphics, left, top);
         if (menu.kind() == MmceMachineMenu.MachineMenuKind.UPGRADE_BUS) {
             for (int index = 0; index < menu.machineSlotCount(); index++) {
                 Slot slot = menu.slots.get(index);
@@ -153,6 +161,10 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             submitSmartInterfaceBox();
             return true;
         }
+        if (groupIdBox != null && groupIdBox.isFocused() && (keyCode == 257 || keyCode == 335)) {
+            submitGroupInputBox();
+            return true;
+        }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -188,6 +200,10 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             }
             updateSmartInterfaceSuggestion();
         }
+        if (menu.canConfigureGroupInput()) {
+            updateGroupInputSuggestion();
+            updateGroupToggleButton();
+        }
         clampFactoryScroll();
     }
 
@@ -209,10 +225,24 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         guiGraphics.fill(left, top + imageHeight - 1, left + imageWidth, top + imageHeight, BORDER);
         guiGraphics.fill(left, top, left + 1, top + imageHeight, BORDER);
         guiGraphics.fill(left + imageWidth - 1, top, left + imageWidth, top + imageHeight, BORDER);
+        renderGroupInputPanel(guiGraphics, left, top);
         for (Slot slot : menu.slots) {
             guiGraphics.fill(left + slot.x - 1, top + slot.y - 1, left + slot.x + 17, top + slot.y + 17, BORDER);
             guiGraphics.fill(left + slot.x, top + slot.y, left + slot.x + 16, top + slot.y + 16, SLOT);
         }
+    }
+
+    private void renderGroupInputPanel(GuiGraphics guiGraphics, int left, int top) {
+        if (!menu.canConfigureGroupInput()) {
+            return;
+        }
+        int panelLeft = left + imageWidth + 5;
+        int panelTop = top + 18;
+        guiGraphics.fill(panelLeft, panelTop, panelLeft + 62, panelTop + 52, BACKGROUND);
+        guiGraphics.fill(panelLeft, panelTop, panelLeft + 62, panelTop + 1, BORDER);
+        guiGraphics.fill(panelLeft, panelTop + 51, panelLeft + 62, panelTop + 52, BORDER);
+        guiGraphics.fill(panelLeft, panelTop, panelLeft + 1, panelTop + 52, BORDER);
+        guiGraphics.fill(panelLeft + 61, panelTop, panelLeft + 62, panelTop + 52, BORDER);
     }
 
     private void renderMachineOverlays(GuiGraphics guiGraphics, int left, int top) {
@@ -453,6 +483,31 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         resetSmartInterfaceInput();
     }
 
+    private void addGroupInputWidgets() {
+        int x = leftPos + imageWidth + 8;
+        int y = topPos + 24;
+        groupIdBox = new EditBox(font, x, y, 56, 18, Component.literal("Group ID"));
+        groupIdBox.setMaxLength(8);
+        groupIdBox.setFilter(this::isGroupInputAllowed);
+        addRenderableWidget(groupIdBox);
+
+        groupToggleButton = Button.builder(groupToggleLabel(), button -> {
+                    PacketDistributor.sendToServer(new MmceGroupInputConfigPayload(
+                            menu.blockPos(),
+                            parseGroupId(),
+                            !menu.groupInputEnabled()
+                    ));
+                    groupIdBox.setValue("");
+                    updateGroupInputSuggestion();
+                    updateGroupToggleButton();
+                })
+                .bounds(x, y + 22, 56, 20)
+                .build();
+        addRenderableWidget(groupToggleButton);
+        updateGroupInputSuggestion();
+        updateGroupToggleButton();
+    }
+
     private void submitParallelismBox() {
         String value = parallelismBox.getValue();
         if (!value.isBlank()) {
@@ -579,6 +634,18 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         resetSmartInterfaceInput();
     }
 
+    private void submitGroupInputBox() {
+        if (groupIdBox != null) {
+            PacketDistributor.sendToServer(new MmceGroupInputConfigPayload(
+                    menu.blockPos(),
+                    parseGroupId(),
+                    menu.groupInputEnabled()
+            ));
+            groupIdBox.setValue("");
+            updateGroupInputSuggestion();
+        }
+    }
+
     private void resetSmartInterfaceInput() {
         if (smartInterfaceBox != null) {
             smartInterfaceBox.setValue("");
@@ -590,6 +657,33 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         if (smartInterfaceBox != null && smartInterfaceBox.getValue().isEmpty()) {
             SmartInterfaceBlockEntity.Binding binding = currentSmartBinding();
             smartInterfaceBox.setSuggestion(binding == null ? "" : Float.toString(binding.value()));
+        }
+    }
+
+    private void updateGroupInputSuggestion() {
+        if (groupIdBox != null && groupIdBox.getValue().isEmpty()) {
+            groupIdBox.setSuggestion(Integer.toString(menu.configuredGroupId()));
+        }
+    }
+
+    private void updateGroupToggleButton() {
+        if (groupToggleButton != null) {
+            groupToggleButton.setMessage(groupToggleLabel());
+        }
+    }
+
+    private Component groupToggleLabel() {
+        return Component.literal(menu.groupInputEnabled() ? "On" : "Off");
+    }
+
+    private int parseGroupId() {
+        if (groupIdBox == null || groupIdBox.getValue().isBlank()) {
+            return menu.configuredGroupId();
+        }
+        try {
+            return Math.max(0, Integer.parseInt(groupIdBox.getValue()));
+        } catch (NumberFormatException ignored) {
+            return menu.configuredGroupId();
         }
     }
 
@@ -606,6 +700,10 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         return true;
     }
 
+    private boolean isGroupInputAllowed(String value) {
+        return value != null && value.chars().allMatch(Character::isDigit);
+    }
+
     private static String posText(BlockPos pos) {
         return pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
     }
@@ -620,7 +718,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             case FACTORY_CONTROLLER -> new TextureSpec(GUI_FACTORY, 280, 213);
             case ITEM_INPUT_BUS, ITEM_OUTPUT_BUS -> new TextureSpec(texture("inventory_" + inventorySizeName()), 256, 256);
             case FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH,
-                    ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> new TextureSpec(GUI_BAR, 256, 256);
+                    ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> new TextureSpec(GUI_TANK, 256, 256);
             case SMART_INTERFACE, PARALLEL_CONTROLLER -> new TextureSpec(GUI_EMPTY, 256, 256);
             case UPGRADE_BUS -> new TextureSpec(GUI_UPGRADE_BUS, 256, 256);
             default -> null;

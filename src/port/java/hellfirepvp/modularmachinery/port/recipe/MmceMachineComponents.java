@@ -7,9 +7,11 @@ import hellfirepvp.modularmachinery.port.blockentity.ParallelControllerBlockEnti
 import hellfirepvp.modularmachinery.port.blockentity.SmartInterfaceBlockEntity;
 import hellfirepvp.modularmachinery.port.blockentity.UpgradeBusBlockEntity;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -87,6 +89,39 @@ public record MmceMachineComponents(
 
     public List<ItemBusBlockEntity> itemInputs(Optional<String> selectorTag) {
         return byTag(itemInputs, selectorTag);
+    }
+
+    public List<Integer> inputGroups() {
+        Set<Integer> groups = new LinkedHashSet<>();
+        for (ItemBusBlockEntity bus : itemInputs) {
+            if (bus.getGroupId() >= 0) {
+                groups.add(bus.getGroupId());
+            }
+        }
+        for (FluidHatchBlockEntity hatch : fluidInputs) {
+            if (hatch.getGroupId() >= 0) {
+                groups.add(hatch.getGroupId());
+            }
+        }
+        return List.copyOf(groups);
+    }
+
+    public MmceMachineComponents forInputGroup(int groupId) {
+        if (groupId < 0) {
+            return this;
+        }
+        return new MmceMachineComponents(
+                itemInputs.stream().filter(bus -> bus.getGroupId() < 0 || bus.getGroupId() == groupId).toList(),
+                itemOutputs,
+                fluidInputs.stream().filter(hatch -> hatch.getGroupId() < 0 || hatch.getGroupId() == groupId).toList(),
+                fluidOutputs,
+                energyInputs,
+                energyOutputs,
+                parallelControllers,
+                smartInterfaces,
+                upgradeBuses,
+                componentTags
+        );
     }
 
     public List<ItemBusBlockEntity> itemOutputs(Optional<String> selectorTag) {

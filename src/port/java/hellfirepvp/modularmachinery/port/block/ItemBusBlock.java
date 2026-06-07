@@ -79,6 +79,11 @@ public final class ItemBusBlock extends MachineComponentBlock {
             return MmceMachineMenu.open(level, pos, player);
         }
 
+        InteractionResult groupConfigResult = tryOpenGroupInputConfig(level, pos, player);
+        if (groupConfigResult != InteractionResult.PASS) {
+            return groupConfigResult;
+        }
+
         if (!level.isClientSide()) {
             ItemStack extracted = extractFromBus(bus, player.isShiftKeyDown() ? 64 : 1);
             if (extracted.isEmpty()) {

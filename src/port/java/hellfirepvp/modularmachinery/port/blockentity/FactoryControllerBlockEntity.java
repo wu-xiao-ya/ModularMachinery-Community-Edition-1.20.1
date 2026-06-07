@@ -423,6 +423,7 @@ public final class FactoryControllerBlockEntity extends MachineControllerBlockEn
                 : null;
         run.recipeProgress = tag.getInt("recipeProgress");
         run.activeRecipeParallelism = Math.max(1, tag.getInt("activeRecipeParallelism"));
+        run.activeInputGroupId = tag.contains("activeInputGroupId") ? tag.getInt("activeInputGroupId") : -1;
         run.working = tag.getBoolean("working");
         run.recipeStatus = MmceRecipeStatus.bySerializedName(tag.getString("recipeStatus"));
         run.recipeStatusDetail = tag.getString("recipeStatusDetail");
@@ -460,6 +461,7 @@ public final class FactoryControllerBlockEntity extends MachineControllerBlockEn
         private ResourceLocation activeRecipeId;
         private int recipeProgress;
         private int activeRecipeParallelism = 1;
+        private int activeInputGroupId = -1;
         private boolean working;
         private MmceRecipeStatus recipeStatus = MmceRecipeStatus.IDLE;
         private String recipeStatusDetail = "";
@@ -521,6 +523,7 @@ public final class FactoryControllerBlockEntity extends MachineControllerBlockEn
             }
             tag.putInt("recipeProgress", recipeProgress);
             tag.putInt("activeRecipeParallelism", activeRecipeParallelism);
+            tag.putInt("activeInputGroupId", activeInputGroupId);
             tag.putBoolean("working", working);
             tag.putString("recipeStatus", recipeStatus.serializedName());
             if (!recipeStatusDetail.isBlank()) {
@@ -548,6 +551,20 @@ public final class FactoryControllerBlockEntity extends MachineControllerBlockEn
         @Override
         public int getActiveRecipeParallelism() {
             return Math.max(1, activeRecipeParallelism);
+        }
+
+        @Override
+        public int getActiveInputGroupId() {
+            return activeInputGroupId;
+        }
+
+        @Override
+        public void setActiveInputGroupId(int activeInputGroupId) {
+            int normalized = activeInputGroupId < 0 ? -1 : activeInputGroupId;
+            if (this.activeInputGroupId != normalized) {
+                this.activeInputGroupId = normalized;
+                markForSync();
+            }
         }
 
         @Override
@@ -579,6 +596,7 @@ public final class FactoryControllerBlockEntity extends MachineControllerBlockEn
             activeRecipeId = recipeId;
             recipeProgress = 0;
             activeRecipeParallelism = Math.max(1, parallelism);
+            activeInputGroupId = -1;
             setWorking(true);
             setRecipeStatus(MmceRecipeStatus.RUNNING, recipeId.toString());
             markForSync();
@@ -610,10 +628,11 @@ public final class FactoryControllerBlockEntity extends MachineControllerBlockEn
 
         @Override
         public void clearActiveRecipe() {
-            if (activeRecipeId != null || recipeProgress != 0 || activeRecipeParallelism != 1) {
+            if (activeRecipeId != null || recipeProgress != 0 || activeRecipeParallelism != 1 || activeInputGroupId != -1) {
                 activeRecipeId = null;
                 recipeProgress = 0;
                 activeRecipeParallelism = 1;
+                activeInputGroupId = -1;
                 markForSync();
             }
             if (!temporaryModifiers.isEmpty()) {

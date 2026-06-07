@@ -168,13 +168,15 @@ public final class MmceRecipeExecutor {
                         }
                         return;
                     }
-                    if (!consumeStartInputs(controller, run, machineId, recipe, components, level.getRandom(),
+                    MmceMachineComponents inputComponents = components.forInputGroup(searchResult.inputGroupId());
+                    if (!consumeStartInputs(controller, run, machineId, recipe, inputComponents, level.getRandom(),
                             searchResult.parallelism(), modifiers, startModifiers, searchResult.catalystSelection())) {
                         run.setWorking(false);
                         run.setRecipeStatus(MmceRecipeStatus.MISSING_INPUT, recipe.id() + " catalyst input");
                         return;
                     }
                     run.startRecipe(recipe.id(), searchResult.parallelism());
+                    run.setActiveInputGroupId(searchResult.inputGroupId());
                     addCatalystModifiers(controller, run, recipe, searchResult.parallelism(), searchResult.catalystModifiers());
                     recipe.startCommands().ifPresent(commands -> MmceRecipeCommands.run(controller, commands, 0));
                 });
@@ -201,6 +203,7 @@ public final class MmceRecipeExecutor {
 
         MmceRecipeDefinition recipe = activeRecipe.get();
         int parallelism = clampActiveParallelism(run, recipe, maxParallelism);
+        MmceMachineComponents activeComponents = components.forInputGroup(run.getActiveInputGroupId());
         StartCheck supportCheck = checkSupported(recipe);
         if (!supportCheck.ok()) {
             postRecipeEvent(failureEvent(controller, run, machineId, recipe, modifiers, parallelism,
@@ -212,11 +215,11 @@ public final class MmceRecipeExecutor {
         }
 
         if (run.getRecipeProgress() >= recipeTime(recipe, modifiers)) {
-            finishOrBlock(controller, run, recipe, components, level.getRandom(), parallelism, modifiers);
+            finishOrBlock(controller, run, recipe, activeComponents, level.getRandom(), parallelism, modifiers);
             return currentResult(run);
         }
 
-        TickCheck tickCheck = executePerTickRequirements(controller, run, machineId, recipe, components,
+        TickCheck tickCheck = executePerTickRequirements(controller, run, machineId, recipe, activeComponents,
                 run.getRecipeProgress(), level.getRandom(), parallelism, modifiers);
         if (!tickCheck.ok()) {
             run.setWorking(false);
@@ -272,7 +275,7 @@ public final class MmceRecipeExecutor {
             return currentResult(run);
         }
         if (progress >= recipeTime(recipe, modifiers)) {
-            finishOrBlock(controller, run, recipe, components, level.getRandom(), parallelism, modifiers);
+            finishOrBlock(controller, run, recipe, activeComponents, level.getRandom(), parallelism, modifiers);
         }
         return currentResult(run);
     }
@@ -356,35 +359,43 @@ public final class MmceRecipeExecutor {
                     continue;
                 }
                 int checkedParallelism = Math.max(1, Math.min(parallelism, preCheck.parallelism()));
-                    CatalystSelection catalystSelection = selectCatalysts(controller, recipe, components, checkedParallelism, modifiers);
+                for (int inputGroupId : candidateInputGroups(components)) {
+                    MmceMachineComponents inputComponents = components.forInputGroup(inputGroupId);
+                    CatalystSelection catalystSelection = selectCatalysts(controller, recipe, inputComponents, checkedParallelism, modifiers);
                     MmceRecipeModifiers effectiveModifiers = modifiers.withAdditional(catalystSelection.modifiers());
-                    StartCheck check = canStart(controller, recipe, components, checkedParallelism, effectiveModifiers);
+                    StartCheck check = canStart(controller, recipe, inputComponents, checkedParallelism, effectiveModifiers);
                     if (check.ok()) {
                         StartCheck postCheck = postCheckEvent(controller, machineId, run, recipe, checkedParallelism,
                                 MmceRecipeStatus.RUNNING, "", MmceEventPhase.END);
                         if (postCheck.ok()) {
                             int finalParallelism = Math.max(1, Math.min(checkedParallelism, postCheck.parallelism()));
                             if (finalParallelism != checkedParallelism) {
-                                catalystSelection = selectCatalysts(controller, recipe, components, finalParallelism, modifiers);
+                                catalystSelection = selectCatalysts(controller, recipe, inputComponents, finalParallelism, modifiers);
                                 effectiveModifiers = modifiers.withAdditional(catalystSelection.modifiers());
-                                check = canStart(controller, recipe, components, finalParallelism, effectiveModifiers);
+                                check = canStart(controller, recipe, inputComponents, finalParallelism, effectiveModifiers);
                                 if (!check.ok()) {
                                     lastFailure = check;
                                     continue;
                                 }
                             }
-                            return RecipeSearchResult.success(recipe, finalParallelism, catalystSelection);
+                            return RecipeSearchResult.success(recipe, finalParallelism, catalystSelection, inputGroupId);
                         }
                         lastFailure = postCheck;
                         continue;
+                    }
+                    lastFailure = check;
                 }
-                lastFailure = check;
             }
             if (firstFailure.status() == MmceRecipeStatus.NO_RECIPE) {
                 firstFailure = lastFailure;
             }
         }
         return RecipeSearchResult.failure(firstFailure.status(), firstFailure.detail());
+    }
+
+    private static List<Integer> candidateInputGroups(MmceMachineComponents components) {
+        List<Integer> groups = components.inputGroups();
+        return groups.isEmpty() ? List.of(-1) : groups;
     }
 
     private static CatalystSelection selectCatalysts(MachineControllerBlockEntity controller, MmceRecipeDefinition recipe,
@@ -1089,6 +1100,13 @@ public final class MmceRecipeExecutor {
         default void setActiveRecipeParallelism(int parallelism) {
         }
 
+        default int getActiveInputGroupId() {
+            return -1;
+        }
+
+        default void setActiveInputGroupId(int inputGroupId) {
+        }
+
         MmceRecipeStatus getRecipeStatus();
 
         String getRecipeStatusDetail();
@@ -1179,6 +1197,16 @@ public final class MmceRecipeExecutor {
         }
 
         @Override
+        public int getActiveInputGroupId() {
+            return controller.getActiveInputGroupId();
+        }
+
+        @Override
+        public void setActiveInputGroupId(int inputGroupId) {
+            controller.setActiveInputGroupId(inputGroupId);
+        }
+
+        @Override
         public MmceRecipeStatus getRecipeStatus() {
             return controller.getRecipeStatus();
         }
@@ -1230,18 +1258,23 @@ public final class MmceRecipeExecutor {
     }
 
     private record RecipeSearchResult(Optional<MmceRecipeDefinition> recipe, int parallelism, MmceRecipeStatus status,
-                                      String detail, CatalystSelection catalystSelection) {
+                                      String detail, CatalystSelection catalystSelection, int inputGroupId) {
         static RecipeSearchResult success(MmceRecipeDefinition recipe, int parallelism) {
             return success(recipe, parallelism, CatalystSelection.EMPTY);
         }
 
         static RecipeSearchResult success(MmceRecipeDefinition recipe, int parallelism, CatalystSelection catalystSelection) {
+            return success(recipe, parallelism, catalystSelection, -1);
+        }
+
+        static RecipeSearchResult success(MmceRecipeDefinition recipe, int parallelism, CatalystSelection catalystSelection, int inputGroupId) {
             return new RecipeSearchResult(Optional.of(recipe), Math.max(1, parallelism), MmceRecipeStatus.RUNNING,
-                    runningDetail(recipe, parallelism), catalystSelection == null ? CatalystSelection.EMPTY : catalystSelection);
+                    runningDetail(recipe, parallelism), catalystSelection == null ? CatalystSelection.EMPTY : catalystSelection,
+                    inputGroupId < 0 ? -1 : inputGroupId);
         }
 
         static RecipeSearchResult failure(MmceRecipeStatus status, String detail) {
-            return new RecipeSearchResult(Optional.empty(), 1, status, detail, CatalystSelection.EMPTY);
+            return new RecipeSearchResult(Optional.empty(), 1, status, detail, CatalystSelection.EMPTY, -1);
         }
 
         List<MmceMachineModifierDefinition> catalystModifiers() {

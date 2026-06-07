@@ -66,6 +66,7 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity impleme
     private ResourceLocation activeRecipeId;
     private int recipeProgress;
     private int activeRecipeParallelism = 1;
+    private int activeInputGroupId = -1;
     private MmceRecipeStatus recipeStatus = MmceRecipeStatus.IDLE;
     private String recipeStatusDetail = "";
 
@@ -293,6 +294,18 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity impleme
         return Math.max(1, activeRecipeParallelism);
     }
 
+    public int getActiveInputGroupId() {
+        return activeInputGroupId;
+    }
+
+    public void setActiveInputGroupId(int activeInputGroupId) {
+        int normalized = activeInputGroupId < 0 ? -1 : activeInputGroupId;
+        if (this.activeInputGroupId != normalized) {
+            this.activeInputGroupId = normalized;
+            markForSync();
+        }
+    }
+
     public void setActiveRecipeParallelism(int parallelism) {
         int normalized = Math.max(1, parallelism);
         if (activeRecipeParallelism != normalized) {
@@ -331,6 +344,7 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity impleme
         activeRecipeId = recipeId;
         recipeProgress = 0;
         activeRecipeParallelism = Math.max(1, parallelism);
+        activeInputGroupId = -1;
         setWorking(true);
         setRecipeStatus(MmceRecipeStatus.RUNNING, recipeId.toString());
         markForSync();
@@ -351,10 +365,11 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity impleme
     }
 
     public void clearActiveRecipe() {
-        if (activeRecipeId != null || recipeProgress != 0 || activeRecipeParallelism != 1) {
+        if (activeRecipeId != null || recipeProgress != 0 || activeRecipeParallelism != 1 || activeInputGroupId != -1) {
             activeRecipeId = null;
             recipeProgress = 0;
             activeRecipeParallelism = 1;
+            activeInputGroupId = -1;
             markForSync();
         }
         clearTemporaryModifiers();
@@ -536,6 +551,7 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity impleme
         activeRecipeId = tag.contains("activeRecipeId") ? ResourceLocation.tryParse(tag.getString("activeRecipeId")) : null;
         recipeProgress = tag.getInt("recipeProgress");
         activeRecipeParallelism = Math.max(1, tag.getInt("activeRecipeParallelism"));
+        activeInputGroupId = tag.contains("activeInputGroupId") ? tag.getInt("activeInputGroupId") : -1;
         recipeStatus = MmceRecipeStatus.bySerializedName(tag.getString("recipeStatus"));
         recipeStatusDetail = tag.getString("recipeStatusDetail");
         ContainerHelper.loadAllItems(tag, blueprintInventory, registries);
@@ -562,6 +578,7 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity impleme
             tag.putString("activeRecipeId", activeRecipeId.toString());
             tag.putInt("recipeProgress", recipeProgress);
             tag.putInt("activeRecipeParallelism", getActiveRecipeParallelism());
+            tag.putInt("activeInputGroupId", activeInputGroupId);
         }
         tag.putString("recipeStatus", recipeStatus.serializedName());
         if (!recipeStatusDetail.isBlank()) {

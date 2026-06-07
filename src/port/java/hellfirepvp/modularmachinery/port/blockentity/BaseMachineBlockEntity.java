@@ -34,12 +34,13 @@ public class BaseMachineBlockEntity extends BlockEntity {
     }
 
     public int getGroupId() {
-        return groupInput ? groupId : -1;
+        return groupInput ? getConfiguredGroupId() : -1;
     }
 
     public void setGroupId(int groupId) {
-        if (this.groupId != groupId) {
-            this.groupId = groupId;
+        int normalized = Math.max(0, groupId);
+        if (this.groupId != normalized) {
+            this.groupId = normalized;
             markForSync();
         }
     }
@@ -48,11 +49,19 @@ public class BaseMachineBlockEntity extends BlockEntity {
         return groupInput;
     }
 
+    public int getConfiguredGroupId() {
+        return Math.max(0, groupId);
+    }
+
     public void setGroupInput(boolean groupInput) {
         if (this.groupInput != groupInput) {
             this.groupInput = groupInput;
             markForSync();
         }
+    }
+
+    public boolean canConfigureGroupInput() {
+        return false;
     }
 
     public void markForSync() {

@@ -1,8 +1,13 @@
 package hellfirepvp.modularmachinery.port.block;
 
+import hellfirepvp.modularmachinery.port.blockentity.BaseMachineBlockEntity;
+import hellfirepvp.modularmachinery.port.menu.MmceMachineMenu;
 import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
@@ -28,5 +33,18 @@ public class MachineComponentBlock extends Block implements EntityBlock {
     @Override
     protected RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
+    }
+
+    protected static boolean hasEmptyHands(Player player) {
+        return player.getMainHandItem().isEmpty() && player.getOffhandItem().isEmpty();
+    }
+
+    protected static InteractionResult tryOpenGroupInputConfig(Level level, BlockPos pos, Player player) {
+        if (hasEmptyHands(player)
+                && level.getBlockEntity(pos) instanceof BaseMachineBlockEntity blockEntity
+                && blockEntity.canConfigureGroupInput()) {
+            return MmceMachineMenu.open(level, pos, player);
+        }
+        return InteractionResult.PASS;
     }
 }

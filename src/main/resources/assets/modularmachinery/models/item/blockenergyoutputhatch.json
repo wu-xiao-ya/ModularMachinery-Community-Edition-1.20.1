@@ -1,3 +1,13 @@
 {
-  "parent": "modularmachinery:block/blockenergyoutputhatch_normal"
+  "parent": "modularmachinery:block/blockenergyoutputhatch_normal",
+  "overrides": [
+    { "predicate": { "modularmachinery:variant": 0 }, "model": "modularmachinery:item/blockenergyoutputhatch_tiny" },
+    { "predicate": { "modularmachinery:variant": 1 }, "model": "modularmachinery:item/blockenergyoutputhatch_small" },
+    { "predicate": { "modularmachinery:variant": 2 }, "model": "modularmachinery:item/blockenergyoutputhatch_normal" },
+    { "predicate": { "modularmachinery:variant": 3 }, "model": "modularmachinery:item/blockenergyoutputhatch_reinforced" },
+    { "predicate": { "modularmachinery:variant": 4 }, "model": "modularmachinery:item/blockenergyoutputhatch_big" },
+    { "predicate": { "modularmachinery:variant": 5 }, "model": "modularmachinery:item/blockenergyoutputhatch_huge" },
+    { "predicate": { "modularmachinery:variant": 6 }, "model": "modularmachinery:item/blockenergyoutputhatch_ludicrous" },
+    { "predicate": { "modularmachinery:variant": 7 }, "model": "modularmachinery:item/blockenergyoutputhatch_ultimate" }
+  ]
 }

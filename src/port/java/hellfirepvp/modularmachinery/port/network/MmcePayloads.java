@@ -19,6 +19,11 @@ public final class MmcePayloads {
                 MmceFluidGuiInteractPayload.STREAM_CODEC,
                 MmceFluidGuiInteractPayload::handle
         );
+        registrar.playToServer(
+                MmceGroupInputConfigPayload.TYPE,
+                MmceGroupInputConfigPayload.STREAM_CODEC,
+                MmceGroupInputConfigPayload::handle
+        );
         registrar.playToClient(
                 MmceFactoryRunsPayload.TYPE,
                 MmceFactoryRunsPayload.STREAM_CODEC,

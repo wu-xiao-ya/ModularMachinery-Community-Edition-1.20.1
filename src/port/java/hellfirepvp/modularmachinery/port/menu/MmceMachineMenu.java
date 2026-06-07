@@ -51,7 +51,7 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     public static final int BUTTON_PARALLEL_INCREMENT_100 = 6;
     public static final int BUTTON_PARALLEL_SET_BASE = 1_000;
 
-    private static final int DATA_COUNT = 12;
+    private static final int DATA_COUNT = 14;
     private static final int DATA_KIND = 0;
     private static final int DATA_COLOR = 1;
     private static final int DATA_GROUP_ID = 2;
@@ -64,6 +64,8 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     private static final int DATA_F = 9;
     private static final int DATA_G = 10;
     private static final int DATA_H = 11;
+    private static final int DATA_CONFIGURED_GROUP_ID = 12;
+    private static final int DATA_CAN_CONFIGURE_GROUP = 13;
 
     private static final int DEFAULT_IMAGE_WIDTH = 176;
     private static final int DEFAULT_IMAGE_HEIGHT = 166;
@@ -191,6 +193,18 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         return data(DATA_COLOR) & 0xFFFFFF;
     }
 
+    public boolean canConfigureGroupInput() {
+        return data(DATA_CAN_CONFIGURE_GROUP) == 1;
+    }
+
+    public int configuredGroupId() {
+        return Math.max(0, data(DATA_CONFIGURED_GROUP_ID));
+    }
+
+    public boolean groupInputEnabled() {
+        return data(DATA_GROUP_INPUT) == 1;
+    }
+
     public boolean structureFormed() {
         return data(DATA_A) == 1;
     }
@@ -298,9 +312,14 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
             }
             default -> lines.add(Component.literal("Component: " + kind().displayName()));
         }
-        int groupId = data(DATA_GROUP_ID);
-        if (groupId >= 0) {
-            lines.add(Component.literal("Group: " + groupId + (data(DATA_GROUP_INPUT) == 1 ? " input" : " output")));
+        if (canConfigureGroupInput()) {
+            lines.add(Component.literal("Group input: " + (groupInputEnabled() ? "enabled" : "disabled")
+                    + " | ID: " + configuredGroupId()));
+        } else {
+            int groupId = data(DATA_GROUP_ID);
+            if (groupId >= 0) {
+                lines.add(Component.literal("Group: " + groupId + (data(DATA_GROUP_INPUT) == 1 ? " input" : " output")));
+            }
         }
         lines.add(Component.literal("Color: #" + String.format("%06X", data(DATA_COLOR) & 0xFFFFFF)));
         return lines;
@@ -567,6 +586,8 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
             case DATA_COLOR -> blockEntity.getMachineColor();
             case DATA_GROUP_ID -> blockEntity.getGroupId();
             case DATA_GROUP_INPUT -> blockEntity.isGroupInput() ? 1 : 0;
+            case DATA_CONFIGURED_GROUP_ID -> blockEntity.getConfiguredGroupId();
+            case DATA_CAN_CONFIGURE_GROUP -> blockEntity.canConfigureGroupInput() ? 1 : 0;
             default -> computeSpecificData(index);
         };
     }

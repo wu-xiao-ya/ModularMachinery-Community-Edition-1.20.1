@@ -46,6 +46,11 @@ public class FluidHatchBlockEntity extends BaseMachineBlockEntity {
         return processor;
     }
 
+    @Override
+    public boolean canConfigureGroupInput() {
+        return input && !processor;
+    }
+
     public FluidHatchSize getSize() {
         return getBlockState().hasProperty(FluidHatchBlock.SIZE)
                 ? getBlockState().getValue(FluidHatchBlock.SIZE)

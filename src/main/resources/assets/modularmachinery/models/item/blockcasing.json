@@ -1,3 +1,11 @@
 {
-  "parent": "modularmachinery:block/blockcasing_plain"
+  "parent": "modularmachinery:block/blockcasing_plain",
+  "overrides": [
+    { "predicate": { "modularmachinery:variant": 0 }, "model": "modularmachinery:item/blockcasing_plain" },
+    { "predicate": { "modularmachinery:variant": 1 }, "model": "modularmachinery:item/blockcasing_vent" },
+    { "predicate": { "modularmachinery:variant": 2 }, "model": "modularmachinery:item/blockcasing_firebox" },
+    { "predicate": { "modularmachinery:variant": 3 }, "model": "modularmachinery:item/blockcasing_gearbox" },
+    { "predicate": { "modularmachinery:variant": 4 }, "model": "modularmachinery:item/blockcasing_reinforced" },
+    { "predicate": { "modularmachinery:variant": 5 }, "model": "modularmachinery:item/blockcasing_circuitry" }
+  ]
 }

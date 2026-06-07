@@ -73,6 +73,10 @@ public final class FluidHatchBlock extends MachineComponentBlock {
         if (!player.isShiftKeyDown()) {
             return MmceMachineMenu.open(level, pos, player);
         }
+        InteractionResult groupConfigResult = tryOpenGroupInputConfig(level, pos, player);
+        if (groupConfigResult != InteractionResult.PASS) {
+            return groupConfigResult;
+        }
         if (!level.isClientSide()) {
             showStatus(level, pos, player);
         }

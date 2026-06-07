@@ -1,3 +1,7 @@
 {
-  "parent": "modularmachinery:block/blocksmartinterface_number"
+  "parent": "modularmachinery:block/blocksmartinterface_number",
+  "overrides": [
+    { "predicate": { "modularmachinery:variant": 0 }, "model": "modularmachinery:item/blocksmartinterface_number" },
+    { "predicate": { "modularmachinery:variant": 1 }, "model": "modularmachinery:item/blocksmartinterface_string" }
+  ]
 }

@@ -36,6 +36,11 @@ public class ItemBusBlockEntity extends BaseMachineBlockEntity implements Contai
         return input;
     }
 
+    @Override
+    public boolean canConfigureGroupInput() {
+        return input;
+    }
+
     public ItemBusSize getSize() {
         return sizeFromState(getBlockState());
     }
