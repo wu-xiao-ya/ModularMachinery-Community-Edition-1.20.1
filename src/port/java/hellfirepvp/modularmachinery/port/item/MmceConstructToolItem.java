@@ -2,6 +2,7 @@ package hellfirepvp.modularmachinery.port.item;
 
 import hellfirepvp.modularmachinery.port.block.ControllerBlock;
 import hellfirepvp.modularmachinery.port.blockentity.MachineControllerBlockEntity;
+import hellfirepvp.modularmachinery.port.assembly.MmceSurvivalAssemblyManager;
 import hellfirepvp.modularmachinery.port.data.MmceDataRegistry;
 import hellfirepvp.modularmachinery.port.data.MmceMachineDefinition;
 import hellfirepvp.modularmachinery.port.machine.MmceStructurePreview;
@@ -37,13 +38,14 @@ public class MmceConstructToolItem extends Item {
         if (!(level instanceof ServerLevel serverLevel) || !(context.getPlayer() instanceof ServerPlayer player)) {
             return InteractionResult.PASS;
         }
-        if (!canUse(player)) {
-            player.displayClientMessage(Component.literal("Construct tool requires creative mode and permission level 2."), false);
-            return InteractionResult.FAIL;
-        }
 
         if (level.getBlockEntity(context.getClickedPos()) instanceof MachineControllerBlockEntity controller) {
             return handleController(serverLevel, player, controller);
+        }
+
+        if (!canUse(player)) {
+            player.displayClientMessage(Component.literal("Construct tool requires creative mode and permission level 2."), false);
+            return InteractionResult.FAIL;
         }
 
         MmceStructureSelectionHelper.ToggleResult result = MmceStructureSelectionHelper.toggle(player, context.getClickedPos());
@@ -56,6 +58,10 @@ public class MmceConstructToolItem extends Item {
     private static InteractionResult handleController(ServerLevel level, ServerPlayer player, MachineControllerBlockEntity controller) {
         int selected = MmceStructureSelectionHelper.selectedCount(player);
         if (selected > 0) {
+            if (!canUse(player)) {
+                player.displayClientMessage(Component.literal("Construct tool selection export requires creative mode and permission level 2."), false);
+                return InteractionResult.FAIL;
+            }
             return exportSelection(level, player, controller);
         }
 
@@ -68,6 +74,9 @@ public class MmceConstructToolItem extends Item {
                 return InteractionResult.FAIL;
             }
             controller.setMachineId(machineId);
+            if (!canUse(player)) {
+                return startSurvivalAssembly(level, player, controller, machine.get());
+            }
             AssemblyResult assembly = assembleCreative(level, controller, machine.get());
             boolean formed = controller.refreshStructure();
             player.displayClientMessage(Component.literal("Controller bound to " + machine.get().localizedName()
@@ -79,8 +88,13 @@ public class MmceConstructToolItem extends Item {
         boolean formed = controller.refreshStructure();
         String machine = controller.getMachineId().map(ResourceLocation::toString).orElse("none");
         if (!formed) {
-            Optional<MmceMachineDefinition> definition = controller.getMachineId().flatMap(MmceDataRegistry::getMachine);
+            Optional<MmceMachineDefinition> definition = controller.getBlueprintMachineId()
+                    .or(controller::getMachineId)
+                    .flatMap(MmceDataRegistry::getMachine);
             if (definition.isPresent()) {
+                if (!canUse(player)) {
+                    return startSurvivalAssembly(level, player, controller, definition.get());
+                }
                 AssemblyResult assembly = assembleCreative(level, controller, definition.get());
                 formed = controller.refreshStructure();
                 player.displayClientMessage(Component.literal("Structure auto-assembly: machine=" + machine
@@ -90,6 +104,16 @@ public class MmceConstructToolItem extends Item {
         }
         player.displayClientMessage(Component.literal("Structure refresh: machine=" + machine + ", formed=" + formed), false);
         return InteractionResult.SUCCESS;
+    }
+
+    private static InteractionResult startSurvivalAssembly(
+            ServerLevel level,
+            ServerPlayer player,
+            MachineControllerBlockEntity controller,
+            MmceMachineDefinition machine
+    ) {
+        boolean started = MmceSurvivalAssemblyManager.start(player, level, controller, machine);
+        return started ? InteractionResult.SUCCESS : InteractionResult.FAIL;
     }
 
     private static AssemblyResult assembleCreative(ServerLevel level, MachineControllerBlockEntity controller, MmceMachineDefinition machine) {
@@ -158,7 +182,7 @@ public class MmceConstructToolItem extends Item {
         return stack.isEmpty() ? Optional.empty() : MmceBlueprintData.getMachineId(stack);
     }
 
-    private static Direction controllerFacing(MachineControllerBlockEntity controller) {
+    public static Direction controllerFacing(MachineControllerBlockEntity controller) {
         BlockState state = controller.getBlockState();
         return state.hasProperty(ControllerBlock.FACING) ? state.getValue(ControllerBlock.FACING) : Direction.NORTH;
     }

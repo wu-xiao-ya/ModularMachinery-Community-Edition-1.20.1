@@ -2,6 +2,7 @@ package hellfirepvp.modularmachinery.port;
 
 import com.mojang.logging.LogUtils;
 import hellfirepvp.modularmachinery.port.capability.MmceCapabilities;
+import hellfirepvp.modularmachinery.port.assembly.MmceSurvivalAssemblyEvents;
 import hellfirepvp.modularmachinery.port.client.MmceClientSetup;
 import hellfirepvp.modularmachinery.port.command.MmceCommands;
 import hellfirepvp.modularmachinery.port.data.MmceDataReloadListener;
@@ -42,6 +43,8 @@ public final class ModularMachineryNeoForge {
         }
         NeoForge.EVENT_BUS.addListener(MmceDataReloadListener::addReloadListener);
         NeoForge.EVENT_BUS.addListener(MmceCommands::register);
+        NeoForge.EVENT_BUS.addListener(MmceSurvivalAssemblyEvents::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(MmceSurvivalAssemblyEvents::onPlayerLoggedOut);
 
         if (ModList.get().isLoaded("kubejs")) {
             MmceKubeJSIntegration.bootstrap();
