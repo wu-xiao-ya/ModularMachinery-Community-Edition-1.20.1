@@ -1226,7 +1226,7 @@ public final class MmceRecipeAdapterBuilder {
 
     private MmceRecipeAdapterBuilder recipeHandler(MmceRecipeEventType type, MmceEventPhase phase, MmceRecipeEventHandler handler) {
         if (handler != null) {
-            MmceEventRegistry.registerRecipeAdapter(sourceId, type, event -> {
+            MmceEventRegistry.registerRecipeAdapter(sourceId, sourceId, type, event -> {
                 if (phase == null || event.getPhase() == phase) {
                     handler.handle(event);
                 }

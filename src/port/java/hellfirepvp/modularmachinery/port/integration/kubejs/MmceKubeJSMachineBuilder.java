@@ -474,7 +474,7 @@ public final class MmceKubeJSMachineBuilder {
 
     private MmceKubeJSMachineBuilder machineHandler(MmceMachineEventType type, MmceEventPhase phase, MmceMachineEventHandler handler) {
         if (handler != null) {
-            MmceEventRegistry.registerMachine(registryName, type, event -> {
+            MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(registryName), type, event -> {
                 if (phase == null || event.getPhase() == phase) {
                     handler.handle(event);
                 }

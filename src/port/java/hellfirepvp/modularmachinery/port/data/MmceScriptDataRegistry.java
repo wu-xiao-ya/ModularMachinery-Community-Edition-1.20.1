@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.RecipeManager;
@@ -29,6 +30,19 @@ public final class MmceScriptDataRegistry {
             SCRIPT_RECIPES.clear();
             SCRIPT_ADAPTERS.clear();
             SCRIPT_MACHINE_PATCHES.clear();
+            MmceDataRegistry.replace(mergeLocked(datapackSnapshot));
+        }
+    }
+
+    public static void clearSources(Predicate<ResourceLocation> sourcePredicate) {
+        if (sourcePredicate == null) {
+            return;
+        }
+        synchronized (LOCK) {
+            SCRIPT_MACHINES.keySet().removeIf(sourcePredicate);
+            SCRIPT_RECIPES.keySet().removeIf(sourcePredicate);
+            SCRIPT_ADAPTERS.keySet().removeIf(sourcePredicate);
+            SCRIPT_MACHINE_PATCHES.removeIf(patch -> sourcePredicate.test(patch.sourceId()));
             MmceDataRegistry.replace(mergeLocked(datapackSnapshot));
         }
     }

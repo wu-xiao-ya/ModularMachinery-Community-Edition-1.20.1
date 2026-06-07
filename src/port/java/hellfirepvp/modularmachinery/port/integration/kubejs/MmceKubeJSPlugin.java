@@ -3,6 +3,8 @@ package hellfirepvp.modularmachinery.port.integration.kubejs;
 import dev.latvian.mods.kubejs.plugin.ClassFilter;
 import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
 import dev.latvian.mods.kubejs.script.BindingRegistry;
+import dev.latvian.mods.kubejs.script.ScriptManager;
+import dev.latvian.mods.kubejs.script.ScriptType;
 import hellfirepvp.modularmachinery.port.blockentity.MachineControllerBlockEntity;
 import hellfirepvp.modularmachinery.port.event.MmceMachineEvent;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeEvent;
@@ -26,5 +28,12 @@ public final class MmceKubeJSPlugin implements KubeJSPlugin {
         bindings.add("MMCE", MmceKubeJSBindings.class);
         bindings.add("ModularMachinery", MmceKubeJSBindings.class);
         bindings.add("MMCEEvents", MmceKubeJSEvents.class);
+    }
+
+    @Override
+    public void beforeScriptsLoaded(ScriptManager manager) {
+        if (manager.scriptType == ScriptType.SERVER) {
+            MmceKubeJSBindings.clearKubeJSScriptDefinitions();
+        }
     }
 }

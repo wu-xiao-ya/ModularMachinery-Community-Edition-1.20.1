@@ -1223,7 +1223,7 @@ public final class MmceKubeJSRecipeBuilder {
 
     private MmceKubeJSRecipeBuilder recipeHandler(MmceRecipeEventType type, MmceEventPhase phase, MmceRecipeEventHandler handler) {
         if (handler != null) {
-            MmceEventRegistry.registerRecipe(registryName, type, event -> {
+            MmceEventRegistry.registerRecipe(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(registryName), type, event -> {
                 if (phase == null || event.getPhase() == phase) {
                     handler.handle(event);
                 }

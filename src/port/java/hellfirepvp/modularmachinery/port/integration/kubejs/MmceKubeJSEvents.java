@@ -27,19 +27,21 @@ import hellfirepvp.modularmachinery.port.event.MmceSmartInterfaceUpdateEvent;
 
 public final class MmceKubeJSEvents {
     public static void onStructureFormed(String machineId, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, MmceMachineEventType.STRUCTURE_FORMED, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), MmceMachineEventType.STRUCTURE_FORMED, handler);
     }
 
     public static void onStructureFormedKeyed(String machineId, String key, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, key, MmceMachineEventType.STRUCTURE_FORMED, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), key,
+                MmceMachineEventType.STRUCTURE_FORMED, handler);
     }
 
     public static void onStructureUpdate(String machineId, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, MmceMachineEventType.STRUCTURE_UPDATE, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), MmceMachineEventType.STRUCTURE_UPDATE, handler);
     }
 
     public static void onStructureUpdateKeyed(String machineId, String key, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, key, MmceMachineEventType.STRUCTURE_UPDATE, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), key,
+                MmceMachineEventType.STRUCTURE_UPDATE, handler);
     }
 
     public static void onMachinePreTick(String machineId, MmceMachineEventHandler handler) {
@@ -67,27 +69,30 @@ public final class MmceKubeJSEvents {
     }
 
     public static void onSmartInterfaceUpdate(String machineId, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, MmceMachineEventType.SMART_INTERFACE_UPDATE, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), MmceMachineEventType.SMART_INTERFACE_UPDATE, handler);
     }
 
     public static void onSmartInterfaceUpdateKeyed(String machineId, String key, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, key, MmceMachineEventType.SMART_INTERFACE_UPDATE, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), key,
+                MmceMachineEventType.SMART_INTERFACE_UPDATE, handler);
     }
 
     public static void onControllerButtonClick(String machineId, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, MmceMachineEventType.CONTROLLER_BUTTON_CLICK, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), MmceMachineEventType.CONTROLLER_BUTTON_CLICK, handler);
     }
 
     public static void onControllerButtonClickKeyed(String machineId, String key, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, key, MmceMachineEventType.CONTROLLER_BUTTON_CLICK, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), key,
+                MmceMachineEventType.CONTROLLER_BUTTON_CLICK, handler);
     }
 
     public static void onControllerGUIRender(String machineId, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, MmceMachineEventType.CONTROLLER_GUI_RENDER, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), MmceMachineEventType.CONTROLLER_GUI_RENDER, handler);
     }
 
     public static void onControllerGUIRenderKeyed(String machineId, String key, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, key, MmceMachineEventType.CONTROLLER_GUI_RENDER, handler);
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), key,
+                MmceMachineEventType.CONTROLLER_GUI_RENDER, handler);
     }
 
     public static void onRecipePreCheck(String recipeId, MmceRecipeEventHandler handler) {
@@ -255,7 +260,7 @@ public final class MmceKubeJSEvents {
     }
 
     private static void onMachineTick(String machineId, MmceEventPhase phase, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, MmceMachineEventType.TICK, event -> {
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), MmceMachineEventType.TICK, event -> {
             if (event.getPhase() == phase && handler != null) {
                 handler.handle(event);
             }
@@ -263,7 +268,8 @@ public final class MmceKubeJSEvents {
     }
 
     private static void onMachineTickKeyed(String machineId, String key, MmceEventPhase phase, MmceMachineEventHandler handler) {
-        MmceEventRegistry.registerMachine(machineId, key, MmceMachineEventType.TICK, event -> {
+        MmceEventRegistry.registerMachine(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(machineId), key,
+                MmceMachineEventType.TICK, event -> {
             if (event.getPhase() == phase && handler != null) {
                 handler.handle(event);
             }
@@ -271,7 +277,7 @@ public final class MmceKubeJSEvents {
     }
 
     private static void onRecipe(String recipeId, MmceRecipeEventType type, MmceEventPhase phase, MmceRecipeEventHandler handler) {
-        MmceEventRegistry.registerRecipe(recipeId, type, event -> {
+        MmceEventRegistry.registerRecipe(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(recipeId), type, event -> {
             if ((phase == null || event.getPhase() == phase) && handler != null) {
                 handler.handle(event);
             }
@@ -279,7 +285,7 @@ public final class MmceKubeJSEvents {
     }
 
     private static void onRecipeKeyed(String recipeId, String key, MmceRecipeEventType type, MmceEventPhase phase, MmceRecipeEventHandler handler) {
-        MmceEventRegistry.registerRecipe(recipeId, key, type, event -> {
+        MmceEventRegistry.registerRecipe(MmceKubeJSBindings.KUBEJS_EVENT_SOURCE, MmceEventRegistry.resolveId(recipeId), key, type, event -> {
             if ((phase == null || event.getPhase() == phase) && handler != null) {
                 handler.handle(event);
             }
