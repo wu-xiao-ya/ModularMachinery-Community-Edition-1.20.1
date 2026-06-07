@@ -14,6 +14,11 @@ public final class MmcePayloads {
                 MmceSmartInterfaceUpdatePayload.STREAM_CODEC,
                 MmceSmartInterfaceUpdatePayload::handle
         );
+        registrar.playToServer(
+                MmceFluidGuiInteractPayload.TYPE,
+                MmceFluidGuiInteractPayload.STREAM_CODEC,
+                MmceFluidGuiInteractPayload::handle
+        );
         registrar.playToClient(
                 MmceFactoryRunsPayload.TYPE,
                 MmceFactoryRunsPayload.STREAM_CODEC,

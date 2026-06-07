@@ -4,10 +4,10 @@ import hellfirepvp.modularmachinery.port.blockentity.FluidHatchBlockEntity;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
-final class MmceFluidHandler implements IFluidHandler {
+public final class MmceFluidHandler implements IFluidHandler {
     private final FluidHatchBlockEntity hatch;
 
-    MmceFluidHandler(FluidHatchBlockEntity hatch) {
+    public MmceFluidHandler(FluidHatchBlockEntity hatch) {
         this.hatch = hatch;
     }
 

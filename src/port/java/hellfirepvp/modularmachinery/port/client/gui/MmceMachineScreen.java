@@ -7,6 +7,7 @@ import hellfirepvp.modularmachinery.port.blockentity.SmartInterfaceBlockEntity;
 import hellfirepvp.modularmachinery.port.data.MmceDataRegistry;
 import hellfirepvp.modularmachinery.port.data.MmceMachineDefinition;
 import hellfirepvp.modularmachinery.port.menu.MmceMachineMenu;
+import hellfirepvp.modularmachinery.port.network.MmceFluidGuiInteractPayload;
 import hellfirepvp.modularmachinery.port.network.MmceSmartInterfaceUpdatePayload;
 import hellfirepvp.modularmachinery.port.registry.MmceMenus;
 import java.util.ArrayList;
@@ -164,6 +165,15 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isFluidMenu() && isHovering(BAR_X, BAR_Y, BAR_WIDTH, BAR_HEIGHT, mouseX, mouseY)) {
+            PacketDistributor.sendToServer(new MmceFluidGuiInteractPayload(menu.blockPos()));
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -344,6 +354,13 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         return switch (menu.kind()) {
             case ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH,
                     FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isFluidMenu() {
+        return switch (menu.kind()) {
+            case FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH -> true;
             default -> false;
         };
     }
