@@ -33,6 +33,7 @@ import hellfirepvp.modularmachinery.port.event.MmceRecipeStartEvent;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeTickEvent;
 import hellfirepvp.modularmachinery.port.event.MmceResultChanceCreateEvent;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifier;
+import hellfirepvp.modularmachinery.port.perf.MmcePerformanceStats;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -145,7 +146,30 @@ public final class MmceRecipeExecutor {
         if (level == null || level.isClientSide()) {
             return currentResult(run);
         }
+        boolean hadActiveRecipe = run.getActiveRecipeId().isPresent();
+        int startingParallelism = Math.max(1, run.getActiveRecipeParallelism());
+        long startNanos = System.nanoTime();
+        RunTickResult result = tickRunInternal(controller, run, machineId, components, modifiers,
+                searchWhenIdle, maxParallelism, recipeFilter);
+        MmcePerformanceStats.recordRecipeRun(
+                System.nanoTime() - startNanos,
+                Math.max(startingParallelism, run.getActiveRecipeParallelism()),
+                hadActiveRecipe || result.active() || result.working()
+        );
+        return result;
+    }
 
+    private static RunTickResult tickRunInternal(
+            MachineControllerBlockEntity controller,
+            RecipeRun run,
+            ResourceLocation machineId,
+            MmceMachineComponents components,
+            MmceRecipeModifiers modifiers,
+            boolean searchWhenIdle,
+            int maxParallelism,
+            Predicate<MmceRecipeDefinition> recipeFilter
+    ) {
+        Level level = controller.getLevel();
         Optional<MmceRecipeDefinition> activeRecipe = run.getActiveRecipeId()
                 .map(MmceDataRegistry.snapshot().recipes()::get)
                 .filter(recipe -> recipe.machineId().equals(machineId));

@@ -11,13 +11,17 @@ import hellfirepvp.modularmachinery.port.data.MmceRecipeRequirement;
 import hellfirepvp.modularmachinery.port.data.MmceSmartInterfaceRequirement;
 import hellfirepvp.modularmachinery.port.item.MmceBlueprintData;
 import hellfirepvp.modularmachinery.port.machine.MmceStructureDiagnostics;
+import hellfirepvp.modularmachinery.port.perf.MmcePerformanceStats;
 import hellfirepvp.modularmachinery.port.registry.MmceItems;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -32,6 +36,8 @@ import net.minecraft.world.item.component.CustomData;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 public final class MmceCommands {
+    private static final String PERFORMANCE_LANG_KEY = "command.modularmachinery.performance_report";
+
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         dispatcher.register(Commands.literal("mm-get_blueprint")
@@ -55,6 +61,14 @@ public final class MmceCommands {
                 .requires(source -> source.hasPermission(2))
                 .executes(context -> syntaxReport(context.getSource())));
 
+        dispatcher.register(Commands.literal("mm-performance_report")
+                .requires(source -> source.hasPermission(2))
+                .executes(context -> performanceReport(context.getSource()))
+                .then(Commands.argument("argument", StringArgumentType.greedyString())
+                        .executes(context -> performanceReportArgument(
+                                context.getSource(),
+                                StringArgumentType.getString(context, "argument")))));
+
         dispatcher.register(Commands.literal("mmce")
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.literal("get_blueprint")
@@ -71,7 +85,65 @@ public final class MmceCommands {
                 .then(Commands.literal("hand")
                         .executes(context -> describeHeldItem(context.getSource())))
                 .then(Commands.literal("syntax")
-                        .executes(context -> syntaxReport(context.getSource()))));
+                        .executes(context -> syntaxReport(context.getSource())))
+                .then(Commands.literal("performance_report")
+                        .executes(context -> performanceReport(context.getSource()))
+                        .then(Commands.argument("argument", StringArgumentType.greedyString())
+                                .executes(context -> performanceReportArgument(
+                                        context.getSource(),
+                                        StringArgumentType.getString(context, "argument"))))));
+    }
+
+    private static int performanceReportArgument(CommandSourceStack source, String argument) {
+        if (argument != null && argument.trim().split("\\s+", 2)[0].equals("reset")) {
+            return resetPerformanceReport(source);
+        }
+        return performanceReport(source);
+    }
+
+    private static int resetPerformanceReport(CommandSourceStack source) {
+        MmcePerformanceStats.reset();
+        source.sendSuccess(() -> Component.translatable(PERFORMANCE_LANG_KEY + ".reset"), false);
+        return 1;
+    }
+
+    private static int performanceReport(CommandSourceStack source) {
+        MmcePerformanceStats.Snapshot stats = MmcePerformanceStats.snapshot();
+        long executedCount = stats.executedCount();
+        long totalExecuted = stats.totalExecuted();
+        long totalUsedTimeMicros = stats.totalUsedTimeMicros();
+        long taskUsedTimeMicros = stats.taskUsedTimeMicros();
+
+        long executedAvgPerExecution = executedCount == 0 ? 0 : totalExecuted / executedCount;
+        double usedTimeAvgPerExecution = executedCount == 0 ? 0.0D : (double) (totalUsedTimeMicros / executedCount) / 1_000.0D;
+        double taskUsedTimeAvg = executedCount == 0 ? 0.0D : (double) (taskUsedTimeMicros / executedCount) / 1_000.0D;
+        long usedTimeAvg = totalExecuted == 0 ? 0 : taskUsedTimeMicros / totalExecuted;
+
+        source.sendSuccess(() -> Component.translatable(PERFORMANCE_LANG_KEY + ".title",
+                styled(formatDecimal(executedCount), ChatFormatting.GREEN)), false);
+        source.sendSuccess(() -> Component.literal(""), false);
+
+        source.sendSuccess(() -> Component.translatable(PERFORMANCE_LANG_KEY + ".total_executed",
+                styled(formatDecimal(totalExecuted), ChatFormatting.BLUE)), false);
+        source.sendSuccess(() -> Component.translatable(PERFORMANCE_LANG_KEY + ".tasks_avg_per_execution",
+                styled(Long.toString(executedAvgPerExecution), ChatFormatting.BLUE)), false);
+        source.sendSuccess(() -> Component.literal(""), false);
+
+        source.sendSuccess(() -> Component.translatable(PERFORMANCE_LANG_KEY + ".total_used_time",
+                styled(Long.toString(totalUsedTimeMicros / 1_000L), ChatFormatting.BLUE)), false);
+        source.sendSuccess(() -> Component.translatable(PERFORMANCE_LANG_KEY + ".used_time_avg_per_execution",
+                styled(formatTwoDecimals(usedTimeAvgPerExecution), ChatFormatting.YELLOW)), false);
+        source.sendSuccess(() -> Component.literal(""), false);
+
+        source.sendSuccess(() -> Component.translatable(PERFORMANCE_LANG_KEY + ".task_used_time",
+                styled(formatDecimal((double) taskUsedTimeMicros / 1_000.0D), ChatFormatting.BLUE)), false);
+        source.sendSuccess(() -> Component.literal(""), false);
+
+        source.sendSuccess(() -> Component.translatable(PERFORMANCE_LANG_KEY + ".task_used_time_avg",
+                styled(formatTwoDecimals(taskUsedTimeAvg), ChatFormatting.YELLOW)), false);
+        source.sendSuccess(() -> Component.translatable(PERFORMANCE_LANG_KEY + ".used_time_avg",
+                styled(Long.toString(usedTimeAvg), ChatFormatting.BLUE)), false);
+        return 1;
     }
 
     private static int giveBlueprint(CommandSourceStack source, String machineName) {
@@ -377,6 +449,24 @@ public final class MmceCommands {
             builder.append(" (with nbt: ").append(customData).append(" )");
         }
         return builder.toString();
+    }
+
+    private static String formatDecimal(long value) {
+        return NumberFormat.getIntegerInstance(Locale.ROOT).format(value);
+    }
+
+    private static String formatDecimal(double value) {
+        NumberFormat format = NumberFormat.getNumberInstance(Locale.ROOT);
+        format.setMaximumFractionDigits(2);
+        return format.format(value);
+    }
+
+    private static String formatTwoDecimals(double value) {
+        return String.format(Locale.ROOT, "%.2f", value);
+    }
+
+    private static Component styled(String value, ChatFormatting color) {
+        return Component.literal(value).withStyle(color);
     }
 
     private static ResourceLocation parseMachineId(String value) {
