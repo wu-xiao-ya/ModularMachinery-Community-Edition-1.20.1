@@ -1,6 +1,7 @@
 package hellfirepvp.modularmachinery.port.capability;
 
 import hellfirepvp.modularmachinery.port.registry.MmceBlockEntities;
+import hellfirepvp.modularmachinery.port.integration.mekanism.MmceMekanismChemicalCapabilities;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 
@@ -24,6 +25,8 @@ public final class MmceCapabilities {
                 (hatch, side) -> new MmceEnergyStorage(hatch));
         event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, MmceBlockEntities.ENERGY_OUTPUT_HATCH.get(),
                 (hatch, side) -> new MmceEnergyStorage(hatch));
+
+        MmceMekanismChemicalCapabilities.register(event);
     }
 
     private MmceCapabilities() {

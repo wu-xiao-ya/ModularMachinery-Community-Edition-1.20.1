@@ -15,11 +15,15 @@ import hellfirepvp.modularmachinery.port.integration.MmceScriptValues;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import net.minecraft.resources.ResourceLocation;
 
 public final class MmceKubeJSMachineBuilder {
+    private static final Map<ResourceLocation, MmceKubeJSMachineBuilder> PRE_LOAD_MACHINES = new LinkedHashMap<>();
+
     private final String registryName;
     private final JsonObject root = new JsonObject();
     private final JsonArray parts = new JsonArray();
@@ -30,6 +34,76 @@ public final class MmceKubeJSMachineBuilder {
         root.addProperty("registryname", registryName);
         root.addProperty("localizedname", localizedName == null || localizedName.isBlank() ? registryName : localizedName);
         root.add("parts", parts);
+    }
+
+    public static MmceKubeJSMachineBuilder newBuilder(String registryName) {
+        return new MmceKubeJSMachineBuilder(registryName, registryName);
+    }
+
+    public static MmceKubeJSMachineBuilder newBuilder(String registryName, String localizedName) {
+        return new MmceKubeJSMachineBuilder(registryName, localizedName);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName) {
+        return registerMachine(registryName, registryName);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName) {
+        return registerMachineInternal(new MmceKubeJSMachineBuilder(registryName, localizedName));
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean hasFactory, boolean factoryOnly) {
+        MmceKubeJSMachineBuilder builder = new MmceKubeJSMachineBuilder(registryName, localizedName)
+                .hasFactory(hasFactory)
+                .factoryOnly(factoryOnly);
+        return registerMachineInternal(builder);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean requiresBlueprint,
+                                                           MmceKubeJSRecipeFailureActions failureAction,
+                                                           int color) {
+        return registerMachine(registryName, localizedName, requiresBlueprint,
+                failureAction == null ? null : failureAction.getName(), color);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean requiresBlueprint, String failureAction,
+                                                           int color) {
+        MmceKubeJSMachineBuilder builder = new MmceKubeJSMachineBuilder(registryName, localizedName)
+                .requiresBlueprint(requiresBlueprint)
+                .setFailureAction(failureAction)
+                .setColor(color);
+        return registerMachineInternal(builder);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean requiresBlueprint,
+                                                           MmceKubeJSRecipeFailureActions failureAction,
+                                                           int color, boolean hasFactory, boolean factoryOnly) {
+        return registerMachine(registryName, localizedName, requiresBlueprint,
+                failureAction == null ? null : failureAction.getName(), color, hasFactory, factoryOnly);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean requiresBlueprint, String failureAction,
+                                                           int color, boolean hasFactory, boolean factoryOnly) {
+        MmceKubeJSMachineBuilder builder = new MmceKubeJSMachineBuilder(registryName, localizedName)
+                .requiresBlueprint(requiresBlueprint)
+                .setFailureAction(failureAction)
+                .setColor(color)
+                .hasFactory(hasFactory)
+                .factoryOnly(factoryOnly);
+        return registerMachineInternal(builder);
+    }
+
+    public static MmceKubeJSMachineBuilder getBuilder(String registryName) {
+        return PRE_LOAD_MACHINES.get(machineKey(registryName));
+    }
+
+    static void clearPreLoadMachines() {
+        PRE_LOAD_MACHINES.clear();
     }
 
     public MmceKubeJSMachineBuilder part(Object x, Object y, Object z, Object elements) {
@@ -88,6 +162,10 @@ public final class MmceKubeJSMachineBuilder {
         return this;
     }
 
+    public MmceKubeJSMachineBuilder nbt(String json) {
+        return partNbt(json);
+    }
+
     public MmceKubeJSMachineBuilder setPartNbt(String json) {
         return partNbt(json);
     }
@@ -103,6 +181,10 @@ public final class MmceKubeJSMachineBuilder {
     public MmceKubeJSMachineBuilder partPreviewNbt(String json) {
         setLastPartNbt("preview-nbt", json);
         return this;
+    }
+
+    public MmceKubeJSMachineBuilder previewNbt(String json) {
+        return partPreviewNbt(json);
     }
 
     public MmceKubeJSMachineBuilder setPartPreviewNbt(String json) {
@@ -126,6 +208,10 @@ public final class MmceKubeJSMachineBuilder {
             lastPart.addProperty("selector-tag", tag);
         }
         return this;
+    }
+
+    public MmceKubeJSMachineBuilder setTag(String tag) {
+        return partTag(tag);
     }
 
     public MmceKubeJSMachineBuilder setPartTag(String tag) {
@@ -214,6 +300,18 @@ public final class MmceKubeJSMachineBuilder {
             root.addProperty("failure-action", failureAction.trim());
         }
         return this;
+    }
+
+    public MmceKubeJSMachineBuilder setFailureAction(MmceKubeJSRecipeFailureActions failureAction) {
+        return failureAction == null ? this : setFailureAction(failureAction.getName());
+    }
+
+    public MmceKubeJSMachineBuilder failureAction(String failureAction) {
+        return setFailureAction(failureAction);
+    }
+
+    public MmceKubeJSMachineBuilder failureAction(MmceKubeJSRecipeFailureActions failureAction) {
+        return setFailureAction(failureAction);
     }
 
     public MmceKubeJSMachineBuilder setColor(int color) {
@@ -469,7 +567,13 @@ public final class MmceKubeJSMachineBuilder {
     }
 
     public void build() {
+        PRE_LOAD_MACHINES.remove(machineKey(registryName));
         MmceScriptDataRegistry.registerMachine(sourceId("machines", registryName), root);
+    }
+
+    private static MmceKubeJSMachineBuilder registerMachineInternal(MmceKubeJSMachineBuilder builder) {
+        PRE_LOAD_MACHINES.putIfAbsent(machineKey(builder.registryName), builder);
+        return PRE_LOAD_MACHINES.get(machineKey(builder.registryName));
     }
 
     private MmceKubeJSMachineBuilder machineHandler(MmceMachineEventType type, MmceEventPhase phase, MmceMachineEventHandler handler) {
@@ -486,6 +590,13 @@ public final class MmceKubeJSMachineBuilder {
     static ResourceLocation sourceId(String directory, String id) {
         String path = directory + "/" + id.toLowerCase(Locale.ROOT).replace(':', '/').replaceAll("[^a-z0-9_./-]", "_");
         return ResourceLocation.fromNamespaceAndPath("kubejs", path);
+    }
+
+    private static ResourceLocation machineKey(String registryName) {
+        String id = registryName == null || registryName.isBlank() ? "unknown" : registryName.trim();
+        return id.indexOf(':') >= 0
+                ? ResourceLocation.parse(id)
+                : ResourceLocation.fromNamespaceAndPath(hellfirepvp.modularmachinery.port.ModularMachineryNeoForge.MODID, id);
     }
 
     private static JsonElement scalarOrArray(Object value) {

@@ -2,21 +2,21 @@ package hellfirepvp.modularmachinery.port.integration.crafttweaker;
 
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import com.blamejared.crafttweaker.api.data.IData;
-import com.blamejared.crafttweaker.api.item.IItemStack;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
+import net.minecraft.world.item.ItemStack;
 import org.openzen.zencode.java.ZenCodeType;
 
 @ZenRegister
-@ZenCodeType.Name("mods.modularmachinery.SimpleDynamicMachineUpgrade")
-public final class MmceCTSimpleDynamicMachineUpgrade {
+@ZenCodeType.Name("mods.modularmachinery.MachineUpgrade")
+public final class MmceCTMachineUpgrade {
     private final MmceMachineUpgrade upgrade;
 
-    private MmceCTSimpleDynamicMachineUpgrade(MmceMachineUpgrade upgrade) {
+    private MmceCTMachineUpgrade(MmceMachineUpgrade upgrade) {
         this.upgrade = upgrade;
     }
 
-    public static MmceCTSimpleDynamicMachineUpgrade of(MmceMachineUpgrade upgrade) {
-        return upgrade == null ? null : new MmceCTSimpleDynamicMachineUpgrade(upgrade);
+    public static MmceCTMachineUpgrade of(MmceMachineUpgrade upgrade) {
+        return upgrade == null ? null : new MmceCTMachineUpgrade(upgrade);
     }
 
     @ZenCodeType.Getter("name")
@@ -44,6 +44,11 @@ public final class MmceCTSimpleDynamicMachineUpgrade {
         return upgrade.getStackSize();
     }
 
+    @ZenCodeType.Getter("stack")
+    public ItemStack getStack() {
+        return upgrade.getStack();
+    }
+
     @ZenCodeType.Getter("itemData")
     public String getItemData() {
         return upgrade.getItemData();
@@ -65,8 +70,8 @@ public final class MmceCTSimpleDynamicMachineUpgrade {
     }
 
     @ZenCodeType.Getter("parentStack")
-    public IItemStack getParentStack() {
-        return IItemStack.of(upgrade.getParentStack());
+    public ItemStack getParentStack() {
+        return upgrade.getParentStack();
     }
 
     @ZenCodeType.Getter("descriptions")
@@ -79,6 +84,11 @@ public final class MmceCTSimpleDynamicMachineUpgrade {
         return upgrade.getBusGUIDescriptions();
     }
 
+    @ZenCodeType.Getter("busGuiDescriptions")
+    public String[] getBusGuiDescriptions() {
+        return upgrade.getBusGuiDescriptions();
+    }
+
     @ZenCodeType.Method
     public void decrementItemDurability(int durability) {
         upgrade.decrementItemDurability(durability);
@@ -86,6 +96,15 @@ public final class MmceCTSimpleDynamicMachineUpgrade {
     }
 
     @ZenCodeType.Method
+    public MmceCTSimpleMachineUpgrade asSimpleMachineUpgrade() {
+        return MmceCTSimpleMachineUpgrade.of(upgrade);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTSimpleDynamicMachineUpgrade asSimpleDynamicMachineUpgrade() {
+        return MmceCTSimpleDynamicMachineUpgrade.of(upgrade);
+    }
+
     public MmceMachineUpgrade unwrap() {
         return upgrade;
     }

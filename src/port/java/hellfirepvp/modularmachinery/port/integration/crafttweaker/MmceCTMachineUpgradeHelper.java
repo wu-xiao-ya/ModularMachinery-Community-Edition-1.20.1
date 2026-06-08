@@ -3,7 +3,6 @@ package hellfirepvp.modularmachinery.port.integration.crafttweaker;
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import com.blamejared.crafttweaker.api.item.IItemStack;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
-import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeHelper;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeRegistry;
 import net.minecraft.world.item.ItemStack;
@@ -70,18 +69,18 @@ public final class MmceCTMachineUpgradeHelper {
     }
 
     @ZenCodeType.Method
-    public static MmceMachineUpgrade getUpgrade(String upgradeName) {
-        return MmceMachineUpgradeRegistry.upgrade(upgradeName).orElse(null);
+    public static MmceCTMachineUpgrade getUpgrade(String upgradeName) {
+        return MmceMachineUpgradeRegistry.upgrade(upgradeName).map(MmceCTMachineUpgrade::of).orElse(null);
     }
 
     @ZenCodeType.Method
-    public static MmceCTSimpleMachineUpgrade castToSimpleMachineUpgrade(MmceMachineUpgrade upgrade) {
-        return MmceCTSimpleMachineUpgrade.of(upgrade);
+    public static MmceCTSimpleMachineUpgrade castToSimpleMachineUpgrade(MmceCTMachineUpgrade upgrade) {
+        return upgrade == null ? null : MmceCTSimpleMachineUpgrade.of(upgrade.unwrap());
     }
 
     @ZenCodeType.Method
-    public static MmceCTSimpleDynamicMachineUpgrade castToSimpleDynamicMachineUpgrade(MmceMachineUpgrade upgrade) {
-        return MmceCTSimpleDynamicMachineUpgrade.of(upgrade);
+    public static MmceCTSimpleDynamicMachineUpgrade castToSimpleDynamicMachineUpgrade(MmceCTMachineUpgrade upgrade) {
+        return upgrade == null ? null : MmceCTSimpleDynamicMachineUpgrade.of(upgrade.unwrap());
     }
 
     private MmceCTMachineUpgradeHelper() {

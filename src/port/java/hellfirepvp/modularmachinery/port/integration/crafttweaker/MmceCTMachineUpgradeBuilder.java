@@ -4,7 +4,6 @@ import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import com.blamejared.crafttweaker.api.item.IItemStack;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeBuilder;
 import hellfirepvp.modularmachinery.port.integration.MmceFunction;
-import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifier;
 import hellfirepvp.modularmachinery.port.integration.MmceUpgradeEventHandler;
 import net.minecraft.world.item.ItemStack;
@@ -181,8 +180,8 @@ public final class MmceCTMachineUpgradeBuilder {
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineUpgradeBuilder setBusGUIDescriptionHandler(MmceFunction<MmceMachineUpgrade, String[]> handler) {
-        builder.setBusGUIDescriptionHandler(handler);
+    public MmceCTMachineUpgradeBuilder setBusGUIDescriptionHandler(MmceFunction<MmceCTMachineUpgrade, String[]> handler) {
+        builder.setBusGUIDescriptionHandler(upgrade -> handler.apply(MmceCTMachineUpgrade.of(upgrade)));
         return this;
     }
 

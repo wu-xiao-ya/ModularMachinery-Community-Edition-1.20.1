@@ -7,6 +7,7 @@ import hellfirepvp.modularmachinery.port.event.MmceEventPhase;
 import hellfirepvp.modularmachinery.port.event.MmceEventRegistry;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeEventHandler;
 import hellfirepvp.modularmachinery.port.event.MmceRecipeEventType;
+import java.util.Locale;
 import net.minecraft.resources.ResourceLocation;
 
 public final class MmceRecipeAdapterBuilder {
@@ -22,6 +23,22 @@ public final class MmceRecipeAdapterBuilder {
         root.addProperty("adapter", adapter);
         root.add("requirements", requirements);
         root.add("modifiers", modifiers);
+    }
+
+    public static MmceRecipeAdapterBuilder newBuilder(String sourceName, String machine, String adapter) {
+        return new MmceRecipeAdapterBuilder(sourceId("adapters", sourceName), machine, adapter);
+    }
+
+    public static MmceRecipeAdapterBuilder create(String machine, String adapter) {
+        return newBuilder(machine + "_" + (adapter == null ? "" : adapter.replace(':', '_')), machine, adapter);
+    }
+
+    public static MmceRecipeAdapterBuilder createFromParentMachine(String machine, String parentMachine) {
+        return create(machine, parentMachine);
+    }
+
+    public static MmceRecipeAdapterBuilder fromParentMachine(String machine, String parentMachine) {
+        return createFromParentMachine(machine, parentMachine);
     }
 
     public MmceRecipeAdapterBuilder recipeTime(int ticks) {
@@ -475,6 +492,18 @@ public final class MmceRecipeAdapterBuilder {
         return addItemInputs(items);
     }
 
+    public MmceRecipeAdapterBuilder input(Object item) {
+        return addInput(item);
+    }
+
+    public MmceRecipeAdapterBuilder input(Object item, int amount) {
+        return addInput(item, amount);
+    }
+
+    public MmceRecipeAdapterBuilder inputs(Object... items) {
+        return addInputs(items);
+    }
+
     public MmceRecipeAdapterBuilder itemOutput(String item, int amount) {
         return item("output", item, amount);
     }
@@ -518,6 +547,18 @@ public final class MmceRecipeAdapterBuilder {
 
     public MmceRecipeAdapterBuilder addOutputs(Object... items) {
         return addItemOutputs(items);
+    }
+
+    public MmceRecipeAdapterBuilder output(Object item) {
+        return addOutput(item);
+    }
+
+    public MmceRecipeAdapterBuilder output(Object item, int amount) {
+        return addOutput(item, amount);
+    }
+
+    public MmceRecipeAdapterBuilder outputs(Object... items) {
+        return addOutputs(items);
     }
 
     public MmceRecipeAdapterBuilder fuelItemInput(int requiredTotalBurnTime) {
@@ -1188,6 +1229,28 @@ public final class MmceRecipeAdapterBuilder {
         return parallelizeUnaffected(unaffected);
     }
 
+    public MmceRecipeAdapterBuilder requirement(String type, String ioType) {
+        if (type != null && !type.isBlank()) {
+            add(base(type, ioType == null || ioType.isBlank() ? "input" : ioType.trim()));
+        }
+        return this;
+    }
+
+    public MmceRecipeAdapterBuilder addRequirement(String type, String ioType) {
+        return requirement(type, ioType);
+    }
+
+    public MmceRecipeAdapterBuilder requirement(JsonObject requirement) {
+        if (requirement != null) {
+            add(requirement.deepCopy());
+        }
+        return this;
+    }
+
+    public MmceRecipeAdapterBuilder addRequirement(JsonObject requirement) {
+        return requirement(requirement);
+    }
+
     public JsonObject json() {
         return root.deepCopy();
     }
@@ -1384,5 +1447,11 @@ public final class MmceRecipeAdapterBuilder {
     private void add(JsonObject requirement) {
         requirements.add(requirement);
         lastRequirement = requirement;
+    }
+
+    private static ResourceLocation sourceId(String directory, String id) {
+        String safeId = id == null || id.isBlank() ? "unknown" : id;
+        String path = directory + "/" + safeId.toLowerCase(Locale.ROOT).replace(':', '/').replaceAll("[^a-z0-9_./-]", "_");
+        return ResourceLocation.fromNamespaceAndPath("kubejs", path);
     }
 }

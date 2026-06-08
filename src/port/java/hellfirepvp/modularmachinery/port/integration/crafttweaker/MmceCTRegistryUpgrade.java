@@ -3,7 +3,6 @@ package hellfirepvp.modularmachinery.port.integration.crafttweaker;
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import com.blamejared.crafttweaker.api.item.IItemStack;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
-import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeHelper;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeRegistry;
 import net.minecraft.world.item.ItemStack;
@@ -46,7 +45,7 @@ public final class MmceCTRegistryUpgrade {
     }
 
     @ZenCodeType.Method
-    public static void addFixedUpgrade(IItemStack stack, MmceMachineUpgrade upgrade) {
+    public static void addFixedUpgrade(IItemStack stack, MmceCTMachineUpgrade upgrade) {
         if (upgrade != null) {
             addFixedUpgrade(stack, upgrade.getName());
         }
@@ -55,14 +54,14 @@ public final class MmceCTRegistryUpgrade {
     @ZenCodeType.Method
     public static void addFixedUpgrade(IItemStack stack, MmceCTSimpleMachineUpgrade upgrade) {
         if (upgrade != null) {
-            addFixedUpgrade(stack, upgrade.unwrap());
+            addFixedUpgrade(stack, upgrade.getName());
         }
     }
 
     @ZenCodeType.Method
     public static void addFixedUpgrade(IItemStack stack, MmceCTSimpleDynamicMachineUpgrade upgrade) {
         if (upgrade != null) {
-            addFixedUpgrade(stack, upgrade.unwrap());
+            addFixedUpgrade(stack, upgrade.getName());
         }
     }
 
@@ -80,41 +79,42 @@ public final class MmceCTRegistryUpgrade {
     }
 
     @ZenCodeType.Method
-    public static void registerUpgrade(String type, MmceMachineUpgrade upgrade) {
+    public static void registerUpgrade(String type, MmceCTMachineUpgrade upgrade) {
         if (type == null || type.isBlank() || upgrade == null) {
             return;
         }
-        MmceMachineUpgradeRegistry.register(type, upgrade.data());
+        MmceMachineUpgradeRegistry.register(type, upgrade.unwrap().data());
     }
 
     @ZenCodeType.Method
     public static void registerUpgrade(String type, MmceCTSimpleMachineUpgrade upgrade) {
         if (upgrade != null) {
-            registerUpgrade(type, upgrade.unwrap());
+            MmceMachineUpgradeRegistry.register(type, upgrade.unwrap().data());
         }
     }
 
     @ZenCodeType.Method
     public static void registerUpgrade(String type, MmceCTSimpleDynamicMachineUpgrade upgrade) {
         if (upgrade != null) {
-            registerUpgrade(type, upgrade.unwrap());
+            MmceMachineUpgradeRegistry.register(type, upgrade.unwrap().data());
         }
     }
 
     @ZenCodeType.Method
-    public static MmceMachineUpgrade getUpgrade(String type) {
-        return MmceMachineUpgradeRegistry.upgrade(type).orElse(null);
+    public static MmceCTMachineUpgrade getUpgrade(String type) {
+        return MmceMachineUpgradeRegistry.upgrade(type).map(MmceCTMachineUpgrade::of).orElse(null);
     }
 
     @ZenCodeType.Method
-    public static MmceMachineUpgrade[] getItemUpgradeList(IItemStack stack) {
+    public static MmceCTMachineUpgrade[] getItemUpgradeList(IItemStack stack) {
         if (stack == null || !MmceMachineUpgradeHelper.supportsUpgrade(stack.getInternal())) {
-            return new MmceMachineUpgrade[0];
+            return new MmceCTMachineUpgrade[0];
         }
         return MmceMachineUpgradeHelper.fixedUpgrades(stack.getInternal()).stream()
                 .map(tag -> tag.getString("name"))
                 .map(MmceMachineUpgradeRegistry::upgrade)
                 .flatMap(java.util.Optional::stream)
-                .toArray(MmceMachineUpgrade[]::new);
+                .map(MmceCTMachineUpgrade::of)
+                .toArray(MmceCTMachineUpgrade[]::new);
     }
 }

@@ -18,6 +18,8 @@ import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeRegistry;
 import hellfirepvp.modularmachinery.port.machine.MmceStructureMatcher;
 import hellfirepvp.modularmachinery.port.network.MmceFactoryRunsPayload;
+import hellfirepvp.modularmachinery.port.network.MmceFluidHatchDataPayload;
+import hellfirepvp.modularmachinery.port.network.MmceSmartInterfaceDataPayload;
 import hellfirepvp.modularmachinery.port.recipe.MmceRecipeStatus;
 import hellfirepvp.modularmachinery.port.registry.MmceMenus;
 import java.util.ArrayList;
@@ -91,6 +93,12 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     private int factoryMaxThreads;
     private int factoryTotalParallelism;
     private String lastFactorySignature = "";
+    private ResourceLocation clientChemicalId;
+    private int clientChemicalAmount;
+    private boolean clientFluidHatchDataReceived;
+    private String lastFluidHatchSignature = "";
+    private List<MmceSmartInterfaceDataPayload.BindingDetail> smartInterfaceBindings = List.of();
+    private String lastSmartInterfaceSignature = "";
 
     public static MmceMachineMenu fromNetwork(int containerId, Inventory playerInventory, RegistryFriendlyByteBuf data) {
         BlockPos pos = data == null ? BlockPos.ZERO : data.readBlockPos();
@@ -229,6 +237,14 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         return unsignedLong(DATA_D, DATA_E);
     }
 
+    public long energyTransferLimit() {
+        return unsignedLong(DATA_F, DATA_G);
+    }
+
+    public boolean energyInput() {
+        return data(DATA_A) == 1;
+    }
+
     public int fluidStored() {
         return data(DATA_C);
     }
@@ -237,15 +253,49 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         return Math.max(1, data(DATA_D));
     }
 
-    public List<SmartInterfaceBlockEntity.Binding> smartInterfaceBindings() {
-        if (blockEntity instanceof SmartInterfaceBlockEntity smartInterface) {
-            return List.copyOf(smartInterface.getBindings());
+    public boolean hasStoredChemical() {
+        if (!clientSide && blockEntity instanceof FluidHatchBlockEntity hatch) {
+            return hatch.hasStoredChemical();
         }
-        return List.of();
+        if (clientFluidHatchDataReceived) {
+            return clientChemicalId != null && clientChemicalAmount > 0;
+        }
+        return data(DATA_F) == 1 && data(DATA_E) > 0;
     }
 
-    public SmartInterfaceBlockEntity.Binding smartInterfaceBinding(int index) {
-        List<SmartInterfaceBlockEntity.Binding> bindings = smartInterfaceBindings();
+    public ResourceLocation storedChemicalId() {
+        if (blockEntity instanceof FluidHatchBlockEntity hatch && hatch.hasStoredChemical()) {
+            return hatch.getStoredChemicalId();
+        }
+        return clientFluidHatchDataReceived ? clientChemicalId : null;
+    }
+
+    public int storedChemicalAmount() {
+        if (!clientSide && blockEntity instanceof FluidHatchBlockEntity hatch) {
+            return hatch.getStoredChemicalAmount();
+        }
+        return clientFluidHatchDataReceived ? clientChemicalAmount : Math.max(0, data(DATA_E));
+    }
+
+    public String storedChemicalName() {
+        ResourceLocation chemicalId = storedChemicalId();
+        return chemicalId == null ? "unknown" : prettifyIdPath(chemicalId);
+    }
+
+    public String storedChemicalIdText() {
+        ResourceLocation chemicalId = storedChemicalId();
+        return chemicalId == null ? "unknown" : chemicalId.toString();
+    }
+
+    public List<MmceSmartInterfaceDataPayload.BindingDetail> smartInterfaceBindings() {
+        if (!clientSide && blockEntity instanceof SmartInterfaceBlockEntity smartInterface) {
+            return smartInterfaceBindingDetails(smartInterface);
+        }
+        return smartInterfaceBindings;
+    }
+
+    public MmceSmartInterfaceDataPayload.BindingDetail smartInterfaceBinding(int index) {
+        List<MmceSmartInterfaceDataPayload.BindingDetail> bindings = smartInterfaceBindings();
         return index >= 0 && index < bindings.size() ? bindings.get(index) : null;
     }
 
@@ -285,6 +335,16 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         factoryTotalParallelism = payload.totalParallelism();
     }
 
+    public void updateSmartInterfaceData(MmceSmartInterfaceDataPayload payload) {
+        smartInterfaceBindings = payload.bindings();
+    }
+
+    public void updateFluidHatchData(MmceFluidHatchDataPayload payload) {
+        clientChemicalId = payload.chemicalId();
+        clientChemicalAmount = payload.chemicalAmount();
+        clientFluidHatchDataReceived = true;
+    }
+
     public List<Component> statusLines() {
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal("Position: " + blockPos.getX() + ", " + blockPos.getY() + ", " + blockPos.getZ()));
@@ -296,11 +356,7 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
                 lines.add(Component.literal("Slots: " + data(DATA_B)));
             }
             case UPGRADE_BUS -> addUpgradeBusLines(lines);
-            case ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> {
-                lines.add(Component.literal(data(DATA_A) == 1 ? "Mode: Energy input" : "Mode: Energy output"));
-                lines.add(Component.literal("Energy: " + unsignedLong(DATA_B, DATA_C) + "/" + unsignedLong(DATA_D, DATA_E) + " FE"));
-                lines.add(Component.literal("Transfer: " + unsignedLong(DATA_F, DATA_G) + " FE/t"));
-            }
+            case ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> addEnergyLines(lines);
             case FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH -> addFluidLines(lines);
             case SMART_INTERFACE -> {
                 lines.add(Component.literal("Mode: Smart interface"));
@@ -361,6 +417,14 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     public void broadcastChanges() {
         super.broadcastChanges();
         sendFactoryRunsIfChanged();
+        sendFluidHatchDataIfChanged();
+        sendSmartInterfaceDataIfChanged();
+    }
+
+    @Override
+    public void sendAllDataToRemote() {
+        super.sendAllDataToRemote();
+        sendSmartInterfaceDataIfChanged();
     }
 
     @Override
@@ -508,12 +572,19 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         };
         lines.add(Component.literal("Mode: " + mode));
         lines.add(Component.literal("Fluid: " + fluidName));
-        lines.add(Component.literal("Stored: " + data(DATA_C) + "/" + data(DATA_D) + " mB"));
-        if (hatch != null) {
-            String chemicalName = hatch.hasStoredChemical() ? hatch.getStoredChemicalId().toString() : "empty";
-            lines.add(Component.literal("Chemical: " + chemicalName));
-            lines.add(Component.literal("Chemical stored: " + hatch.getStoredChemicalAmount() + "/" + hatch.getCapacity()));
-        }
+        lines.add(Component.literal("Fluid stored: " + fluidStored() + "/" + fluidCapacity() + " mB"));
+        lines.add(Component.literal("Chemical/Gas: " + (hasStoredChemical() ? storedChemicalName() : "empty")));
+        lines.add(Component.literal("Chemical stored: " + storedChemicalAmount() + "/" + fluidCapacity()));
+    }
+
+    private void addEnergyLines(List<Component> lines) {
+        boolean input = energyInput();
+        lines.add(Component.translatable(input ? "gui.energyhatch.mode.input" : "gui.energyhatch.mode.output"));
+        lines.add(Component.translatable("gui.energyhatch.energy",
+                formatNumber(energyStored()), formatNumber(energyCapacity())));
+        lines.add(Component.translatable("gui.energyhatch.transfer",
+                formatNumber(energyTransferLimit())));
+        lines.add(Component.translatable(input ? "gui.energyhatch.side.receive" : "gui.energyhatch.side.extract"));
     }
 
     private void addUpgradeBusLines(List<Component> lines) {
@@ -627,6 +698,8 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
                 case DATA_B -> hatch.isProcessor() ? 1 : 0;
                 case DATA_C -> (int) Math.min(Integer.MAX_VALUE, hatch.getStoredAmount());
                 case DATA_D -> hatch.getCapacity();
+                case DATA_E -> hatch.getStoredChemicalAmount();
+                case DATA_F -> hatch.hasStoredChemical() ? 1 : 0;
                 default -> 0;
             };
         }
@@ -680,6 +753,87 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         ));
     }
 
+    private void sendFluidHatchDataIfChanged() {
+        if (clientSide || !(blockEntity instanceof FluidHatchBlockEntity hatch)
+                || !(playerInventory.player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        ResourceLocation chemicalId = hatch.hasStoredChemical() ? hatch.getStoredChemicalId() : null;
+        int chemicalAmount = hatch.getStoredChemicalAmount();
+        String signature = (chemicalId == null ? "empty" : chemicalId.toString())
+                + '|' + chemicalAmount
+                + '|' + hatch.getCapacity();
+        if (signature.equals(lastFluidHatchSignature)) {
+            return;
+        }
+        lastFluidHatchSignature = signature;
+        PacketDistributor.sendToPlayer(serverPlayer, new MmceFluidHatchDataPayload(
+                blockPos,
+                containerId,
+                chemicalId,
+                chemicalAmount,
+                hatch.getCapacity()
+        ));
+    }
+
+    private void sendSmartInterfaceDataIfChanged() {
+        if (clientSide || !(blockEntity instanceof SmartInterfaceBlockEntity smartInterface)
+                || !(playerInventory.player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        List<MmceSmartInterfaceDataPayload.BindingDetail> bindings = smartInterfaceBindingDetails(smartInterface);
+        String signature = smartInterfaceSignature(bindings);
+        if (signature.equals(lastSmartInterfaceSignature)) {
+            return;
+        }
+        lastSmartInterfaceSignature = signature;
+        PacketDistributor.sendToPlayer(serverPlayer, new MmceSmartInterfaceDataPayload(
+                blockPos,
+                containerId,
+                bindings
+        ));
+    }
+
+    private List<MmceSmartInterfaceDataPayload.BindingDetail> smartInterfaceBindingDetails(SmartInterfaceBlockEntity smartInterface) {
+        List<SmartInterfaceBlockEntity.Binding> bindings = smartInterface.getBindings();
+        List<MmceSmartInterfaceDataPayload.BindingDetail> details = new ArrayList<>(bindings.size());
+        for (SmartInterfaceBlockEntity.Binding binding : bindings) {
+            details.add(smartInterfaceBindingDetail(binding));
+        }
+        return List.copyOf(details);
+    }
+
+    private MmceSmartInterfaceDataPayload.BindingDetail smartInterfaceBindingDetail(SmartInterfaceBlockEntity.Binding binding) {
+        MachineControllerBlockEntity controller = null;
+        if (playerInventory.player.level().getBlockEntity(binding.controllerPos()) instanceof MachineControllerBlockEntity value) {
+            controller = value;
+        }
+        ResourceLocation machineId = controller == null
+                ? binding.machineId()
+                : controller.getMachineId().orElse(binding.machineId());
+        return new MmceSmartInterfaceDataPayload.BindingDetail(
+                binding.controllerPos(),
+                machineId,
+                smartInterfaceMachineName(machineId),
+                binding.type(),
+                binding.value(),
+                controller != null,
+                controller != null && controller.isStructureFormed(),
+                controller != null && controller.isWorking(),
+                controller == null ? MmceRecipeStatus.IDLE : controller.getRecipeStatus(),
+                controller == null ? "" : controller.getRecipeStatusDetail()
+        );
+    }
+
+    private static String smartInterfaceMachineName(ResourceLocation machineId) {
+        if (machineId == null) {
+            return "";
+        }
+        var machine = MmceDataRegistry.snapshot().machines().get(machineId);
+        String localizedName = machine == null ? "" : machine.localizedName();
+        return localizedName.isBlank() ? prettifyIdPath(machineId) : localizedName;
+    }
+
     private static String factorySignature(FactoryControllerBlockEntity factory, List<FactoryControllerBlockEntity.FactoryRunView> runs) {
         StringBuilder builder = new StringBuilder()
                 .append(factory.factoryActiveRunCount()).append('|')
@@ -698,6 +852,24 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
                     .append(run.working()).append(',')
                     .append(run.status().ordinal()).append(',')
                     .append(run.detail());
+        }
+        return builder.toString();
+    }
+
+    private static String smartInterfaceSignature(List<MmceSmartInterfaceDataPayload.BindingDetail> bindings) {
+        StringBuilder builder = new StringBuilder();
+        for (MmceSmartInterfaceDataPayload.BindingDetail binding : bindings) {
+            builder.append('|')
+                    .append(binding.controllerPos()).append(',')
+                    .append(binding.machineId()).append(',')
+                    .append(binding.machineName()).append(',')
+                    .append(binding.type()).append(',')
+                    .append(binding.value()).append(',')
+                    .append(binding.controllerPresent()).append(',')
+                    .append(binding.structureFormed()).append(',')
+                    .append(binding.working()).append(',')
+                    .append(binding.status().ordinal()).append(',')
+                    .append(binding.statusDetail());
         }
         return builder.toString();
     }
@@ -791,7 +963,35 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     }
 
     private static Component titleFor(BaseMachineBlockEntity blockEntity) {
-        return Component.literal(kindFor(blockEntity).displayName());
+        MachineMenuKind kind = kindFor(blockEntity);
+        return switch (kind) {
+            case ENERGY_INPUT_HATCH -> Component.translatable("gui.energyhatch.input.title");
+            case ENERGY_OUTPUT_HATCH -> Component.translatable("gui.energyhatch.output.title");
+            default -> Component.literal(kind.displayName());
+        };
+    }
+
+    private static String formatNumber(long value) {
+        return String.format(java.util.Locale.ROOT, "%,d", value);
+    }
+
+    private static String prettifyIdPath(ResourceLocation id) {
+        String path = id.getPath();
+        StringBuilder builder = new StringBuilder(path.length());
+        boolean capitalize = true;
+        for (int index = 0; index < path.length(); index++) {
+            char c = path.charAt(index);
+            if (c == '_' || c == '-' || c == '/') {
+                if (!builder.isEmpty() && builder.charAt(builder.length() - 1) != ' ') {
+                    builder.append(' ');
+                }
+                capitalize = true;
+                continue;
+            }
+            builder.append(capitalize ? Character.toUpperCase(c) : c);
+            capitalize = false;
+        }
+        return builder.isEmpty() ? id.toString() : builder.toString();
     }
 
     private static MachineMenuKind kindFor(BaseMachineBlockEntity blockEntity) {

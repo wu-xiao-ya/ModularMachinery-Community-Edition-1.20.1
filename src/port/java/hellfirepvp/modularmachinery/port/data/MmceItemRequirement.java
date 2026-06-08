@@ -7,6 +7,7 @@ import hellfirepvp.modularmachinery.port.integration.MmceItemChecker;
 import hellfirepvp.modularmachinery.port.integration.MmceItemModifier;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -75,6 +76,9 @@ public record MmceItemRequirement(
         if (!itemMatches) {
             return false;
         }
+        if (!matchesLegacyMetadata(stack)) {
+            return false;
+        }
         if (checkerId.isEmpty()) {
             return true;
         }
@@ -97,6 +101,7 @@ public record MmceItemRequirement(
             return ItemStack.EMPTY;
         }
         ItemStack stack = new ItemStack(item, Math.min(stackAmount, item.getDefaultMaxStackSize()));
+        applyLegacyMetadata(stack);
         MmceNbtCompat.apply(stack, matchNbt);
         if (itemModifierId.isEmpty()) {
             return stack;
@@ -107,5 +112,18 @@ public record MmceItemRequirement(
         }
         ItemStack modified = modifier.apply(controller, stack.copy());
         return modified == null ? ItemStack.EMPTY : modified;
+    }
+
+    private boolean matchesLegacyMetadata(ItemStack stack) {
+        if (metadata <= 0 || matchNbt.has("Damage") || !stack.has(DataComponents.DAMAGE)) {
+            return true;
+        }
+        return stack.getDamageValue() == metadata;
+    }
+
+    private void applyLegacyMetadata(ItemStack stack) {
+        if (metadata > 0 && !matchNbt.has("Damage") && stack.isDamageableItem()) {
+            stack.setDamageValue(metadata);
+        }
     }
 }

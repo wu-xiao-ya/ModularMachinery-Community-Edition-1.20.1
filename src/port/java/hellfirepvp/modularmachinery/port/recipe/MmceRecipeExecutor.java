@@ -251,6 +251,7 @@ public final class MmceRecipeExecutor {
             run.setRecipeStatus(tickCheck.status(), tickCheck.detail());
             MmceRecipeEvent failureEvent = postRecipeEvent(failureEvent(controller, run, machineId, recipe, modifiers, parallelism,
                     tickCheck.status(), tickCheck.detail(), recipe.cancelIfPerTickFails()));
+            runFailureCommands(controller, recipe, run);
             if (recipe.cancelIfPerTickFails()) {
                 run.clearActiveRecipe();
             } else if (failureEvent.isDestructRecipe()) {
@@ -269,6 +270,7 @@ public final class MmceRecipeExecutor {
             }
             postRecipeEvent(failureEvent(controller, run, machineId, recipe, modifiers, parallelism,
                     preTickEvent.getRecipeStatus(), preTickEvent.getCause(), preTickEvent.isDestructRecipe()));
+            runFailureCommands(controller, recipe, run);
             return currentResult(run);
         }
         if (preTickEvent.isPreventProgressing()) {
@@ -291,6 +293,7 @@ public final class MmceRecipeExecutor {
             }
             postRecipeEvent(failureEvent(controller, run, machineId, recipe, modifiers, parallelism,
                     postTickEvent.getRecipeStatus(), postTickEvent.getCause(), postTickEvent.isDestructRecipe()));
+            runFailureCommands(controller, recipe, run);
             return currentResult(run);
         }
         if (postTickEvent.isPreventProgressing() && progress > 0) {
@@ -598,17 +601,21 @@ public final class MmceRecipeExecutor {
     private static TickCheck executePerTickRequirements(MachineControllerBlockEntity controller, RecipeRun run, ResourceLocation machineId,
                                                         MmceRecipeDefinition recipe, MmceMachineComponents components, int tick,
                                                         RandomSource random, int parallelism, MmceRecipeModifiers modifiers) {
-        TickCheck simulation = simulatePerTickRequirements(controller, recipe, components, tick, parallelism, modifiers);
+        TickChanceSelection chanceSelection = selectPerTickChance(controller, run, machineId, recipe, tick, random, parallelism, modifiers);
+        TickCheck simulation = simulatePerTickRequirements(controller, recipe, components, tick, parallelism, modifiers, chanceSelection);
         if (!simulation.ok()) {
             return simulation;
         }
-        return applyPerTickRequirements(controller, run, machineId, recipe, components, tick, random, parallelism, modifiers);
+        return applyPerTickRequirements(controller, run, machineId, recipe, components, tick, random, parallelism, modifiers, chanceSelection);
     }
 
-    private static TickCheck simulatePerTickRequirements(MachineControllerBlockEntity controller, MmceRecipeDefinition recipe, MmceMachineComponents components, int tick, int parallelism, MmceRecipeModifiers modifiers) {
+    private static TickCheck simulatePerTickRequirements(MachineControllerBlockEntity controller, MmceRecipeDefinition recipe, MmceMachineComponents components, int tick, int parallelism, MmceRecipeModifiers modifiers, TickChanceSelection chanceSelection) {
         ComponentViews views = ComponentViews.copy(components);
         for (SelectedRequirement selected : selectedRequirements(recipe)) {
             MmceParsedRequirement requirement = selected.parsed();
+            if (!chanceSelection.shouldRun(selected)) {
+                continue;
+            }
             if (requirement instanceof MmceFluidRequirement fluidRequirement && fluidRequirement.perTick()) {
                 int amount = amountFor(fluidRequirement, fluidRequirement.amount(), parallelism, modifiers);
                 if (fluidRequirement.ioType() == MmceIoType.INPUT) {
@@ -665,10 +672,13 @@ public final class MmceRecipeExecutor {
 
     private static TickCheck applyPerTickRequirements(MachineControllerBlockEntity controller, RecipeRun run, ResourceLocation machineId,
                                                       MmceRecipeDefinition recipe, MmceMachineComponents components, int tick,
-                                                      RandomSource random, int parallelism, MmceRecipeModifiers modifiers) {
+                                                      RandomSource random, int parallelism, MmceRecipeModifiers modifiers, TickChanceSelection chanceSelection) {
         ComponentViews views = ComponentViews.live(components);
         for (SelectedRequirement selected : selectedRequirements(recipe)) {
             MmceParsedRequirement requirement = selected.parsed();
+            if (!chanceSelection.shouldRun(selected)) {
+                continue;
+            }
             if (requirement instanceof MmceFluidRequirement fluidRequirement && fluidRequirement.perTick()) {
                 int amount = amountFor(fluidRequirement, fluidRequirement.amount(), parallelism, modifiers);
                 if (fluidRequirement.ioType() == MmceIoType.INPUT) {
@@ -818,6 +828,7 @@ public final class MmceRecipeExecutor {
                 postRecipeEvent(failureEvent(controller, run, controller.getMachineId().orElse(recipe.machineId()),
                         recipe, modifiers, parallelism, finishEvent.getRecipeStatus(), finishEvent.getCause(),
                         finishEvent.isDestructRecipe()));
+                runFailureCommands(controller, recipe, run);
                 return;
             }
             if (finishEvent.isCanceled()) {
@@ -926,13 +937,41 @@ public final class MmceRecipeExecutor {
                 .toList();
     }
 
+    private static TickChanceSelection selectPerTickChance(MachineControllerBlockEntity controller, RecipeRun run,
+                                                           ResourceLocation machineId, MmceRecipeDefinition recipe, int tick,
+                                                           RandomSource random, int parallelism, MmceRecipeModifiers modifiers) {
+        Map<SelectedRequirement, Boolean> decisions = new LinkedHashMap<>();
+        for (SelectedRequirement selected : selectedRequirements(recipe)) {
+            MmceParsedRequirement requirement = selected.parsed();
+            if (requiresPerTickChance(requirement) || shouldTriggerInput(requirement, tick)) {
+                decisions.put(selected, rollChance(controller, run, machineId, recipe, requirement, random, parallelism, modifiers));
+            }
+        }
+        return new TickChanceSelection(decisions);
+    }
+
+    private static boolean requiresPerTickChance(MmceParsedRequirement requirement) {
+        return (requirement instanceof MmceFluidRequirement fluidRequirement && fluidRequirement.perTick())
+                || (requirement instanceof MmceChemicalRequirement chemicalRequirement && chemicalRequirement.perTick());
+    }
+
     private static boolean shouldTriggerInput(MmceParsedRequirement requirement, int tick) {
         return requirement.ioType() == MmceIoType.INPUT
-                && requirement.triggerTime() > 0
-                && requirement.triggerTime() == tick
+                && shouldTriggerAtTick(requirement, tick)
                 && !(requirement instanceof MmceFluidRequirement fluidRequirement && fluidRequirement.perTick())
                 && !(requirement instanceof MmceChemicalRequirement chemicalRequirement && chemicalRequirement.perTick())
                 && !(requirement instanceof MmceEnergyRequirement);
+    }
+
+    private static boolean shouldTriggerAtTick(MmceParsedRequirement requirement, int tick) {
+        int triggerTime = requirement.triggerTime();
+        return triggerTime > 0
+                && tick >= triggerTime
+                && (triggerTime == tick || (requirement.triggerRepeatable() && tick % triggerTime == 0));
+    }
+
+    private static void runFailureCommands(MachineControllerBlockEntity controller, MmceRecipeDefinition recipe, RecipeRun run) {
+        recipe.failureCommands().ifPresent(commands -> MmceRecipeCommands.run(controller, commands, run.getRecipeProgress()));
     }
 
     private static int activeParallelism(RecipeRun run, MmceRecipeDefinition recipe) {
@@ -1041,6 +1080,12 @@ public final class MmceRecipeExecutor {
     }
 
     private record SelectedRequirement(MmceParsedRequirement parsed, Optional<String> selectorTag) {
+    }
+
+    private record TickChanceSelection(Map<SelectedRequirement, Boolean> decisions) {
+        boolean shouldRun(SelectedRequirement selected) {
+            return decisions.getOrDefault(selected, true);
+        }
     }
 
     private static final class ComponentViews {

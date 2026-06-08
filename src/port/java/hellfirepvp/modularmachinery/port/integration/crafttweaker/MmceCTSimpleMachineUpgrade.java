@@ -50,7 +50,7 @@ public final class MmceCTSimpleMachineUpgrade {
 
     @ZenCodeType.Setter("customData")
     public void setCustomData(IData customData) {
-        upgrade.setCustomData(customData);
+        upgrade.setCustomData(MmceCTDataConverters.toCompound(customData));
     }
 
     @ZenCodeType.Getter("descriptions")

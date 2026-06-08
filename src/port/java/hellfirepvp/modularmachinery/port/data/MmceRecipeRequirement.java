@@ -35,6 +35,24 @@ public record MmceRecipeRequirement(
         );
     }
 
+    static boolean isLegacyDuration(JsonObject object) {
+        return object.has("type")
+                && isLegacyDurationType(normalizeType(MmceJsonUtil.modId(GsonHelper.getAsString(object, "type"))));
+    }
+
+    static Optional<Integer> readLegacyDuration(JsonObject object) {
+        if (!isLegacyDuration(object)) {
+            return Optional.empty();
+        }
+        int duration = readFirstInt(object, 0,
+                "duration", "time", "ticks", "recipeTime", "recipe-time", "recipe_time");
+        return duration > 0 ? Optional.of(duration) : Optional.empty();
+    }
+
+    private static boolean isLegacyDurationType(ResourceLocation type) {
+        return "modularmachinery".equals(type.getNamespace()) && "duration".equals(type.getPath());
+    }
+
     private static Optional<MmceIoType> defaultIoType(ResourceLocation type) {
         if (!"modularmachinery".equals(type.getNamespace())) {
             return Optional.empty();

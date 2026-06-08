@@ -94,6 +94,7 @@ public final class MmceKubeJSBindings {
     }
 
     public static void clearScriptDefinitions() {
+        MmceKubeJSMachineBuilder.clearPreLoadMachines();
         MmceScriptDataRegistry.clear();
         MmceMachineUpgradeRegistry.clear();
         MmceEventRegistry.clear();
@@ -103,6 +104,7 @@ public final class MmceKubeJSBindings {
     }
 
     public static void clearKubeJSScriptDefinitions() {
+        MmceKubeJSMachineBuilder.clearPreLoadMachines();
         MmceScriptDataRegistry.clearSources(MmceKubeJSBindings::isKubeJSSource);
         MmceEventRegistry.clearSources(MmceKubeJSBindings::isKubeJSSource);
     }
@@ -131,6 +133,34 @@ public final class MmceKubeJSBindings {
         return MmceKubeJSEvents.class;
     }
 
+    public static Class<MmceKubeJSMachineBuilder> machineRegistry() {
+        return MmceKubeJSMachineBuilder.class;
+    }
+
+    public static Class<MmceKubeJSMachineBuilder> MachineRegistry() {
+        return machineRegistry();
+    }
+
+    public static Class<MmceKubeJSMachineBuilder> machineBuilderClass() {
+        return MmceKubeJSMachineBuilder.class;
+    }
+
+    public static Class<MmceKubeJSRecipeFailureActions> recipeFailureActions() {
+        return MmceKubeJSRecipeFailureActions.class;
+    }
+
+    public static Class<MmceKubeJSRecipeFailureActions> RecipeFailureActions() {
+        return recipeFailureActions();
+    }
+
+    public static Class<MmceKubeJSRegistryUpgrade> registryUpgrade() {
+        return MmceKubeJSRegistryUpgrade.class;
+    }
+
+    public static Class<MmceKubeJSRegistryUpgrade> RegistryUpgrade() {
+        return registryUpgrade();
+    }
+
     public static MmceKubeJSMachineBuilder machine(String registryName) {
         return machine(registryName, registryName);
     }
@@ -155,12 +185,65 @@ public final class MmceKubeJSBindings {
         return machine(registryName, localizedName);
     }
 
+    public static MmceKubeJSMachineBuilder newBuilder(String registryName) {
+        return MmceKubeJSMachineBuilder.newBuilder(registryName);
+    }
+
+    public static MmceKubeJSMachineBuilder newBuilder(String registryName, String localizedName) {
+        return MmceKubeJSMachineBuilder.newBuilder(registryName, localizedName);
+    }
+
     public static MmceKubeJSMachineBuilder registerMachine(String registryName) {
-        return machine(registryName);
+        return MmceKubeJSMachineBuilder.registerMachine(registryName);
     }
 
     public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName) {
-        return machine(registryName, localizedName);
+        return MmceKubeJSMachineBuilder.registerMachine(registryName, localizedName);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean hasFactory, boolean factoryOnly) {
+        return MmceKubeJSMachineBuilder.registerMachine(registryName, localizedName, hasFactory, factoryOnly);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean requiresBlueprint,
+                                                           MmceKubeJSRecipeFailureActions failureAction,
+                                                           int color) {
+        return MmceKubeJSMachineBuilder.registerMachine(registryName, localizedName, requiresBlueprint, failureAction, color);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean requiresBlueprint, String failureAction,
+                                                           int color) {
+        return MmceKubeJSMachineBuilder.registerMachine(registryName, localizedName, requiresBlueprint, failureAction, color);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean requiresBlueprint,
+                                                           MmceKubeJSRecipeFailureActions failureAction,
+                                                           int color, boolean hasFactory, boolean factoryOnly) {
+        return MmceKubeJSMachineBuilder.registerMachine(registryName, localizedName, requiresBlueprint,
+                failureAction, color, hasFactory, factoryOnly);
+    }
+
+    public static MmceKubeJSMachineBuilder registerMachine(String registryName, String localizedName,
+                                                           boolean requiresBlueprint, String failureAction,
+                                                           int color, boolean hasFactory, boolean factoryOnly) {
+        return MmceKubeJSMachineBuilder.registerMachine(registryName, localizedName, requiresBlueprint,
+                failureAction, color, hasFactory, factoryOnly);
+    }
+
+    public static MmceKubeJSMachineBuilder getBuilder(String registryName) {
+        return MmceKubeJSMachineBuilder.getBuilder(registryName);
+    }
+
+    public static Class<MmceKubeJSRecipeFailureActions> failureActions() {
+        return recipeFailureActions();
+    }
+
+    public static MmceKubeJSRecipeFailureActions failureAction(String key) {
+        return MmceKubeJSRecipeFailureActions.getFailureAction(key);
     }
 
     public static MmceKubeJSFactoryRecipeThreadBuilder coreThread(String threadName) {
@@ -323,6 +406,22 @@ public final class MmceKubeJSBindings {
         return adapter(sourceName, machine, adapter);
     }
 
+    public static MmceRecipeAdapterBuilder newRecipeAdapterBuilder(String sourceName, String machine, String adapter) {
+        return adapter(sourceName, machine, adapter);
+    }
+
+    public static MmceRecipeAdapterBuilder recipeAdapterBuilder(String sourceName, String machine, String adapter) {
+        return adapter(sourceName, machine, adapter);
+    }
+
+    public static MmceRecipeAdapterBuilder newAdapterBuilder(String sourceName, String machine, String adapter) {
+        return adapter(sourceName, machine, adapter);
+    }
+
+    public static MmceRecipeAdapterBuilder adapterBuilder(String sourceName, String machine, String adapter) {
+        return adapter(sourceName, machine, adapter);
+    }
+
     public static MmceRecipeAdapterBuilder recipe_adapter(String sourceName, String machine, String adapter) {
         return adapter(sourceName, machine, adapter);
     }
@@ -396,11 +495,11 @@ public final class MmceKubeJSBindings {
     }
 
     public static void registerSupportedUpgradeItem(net.minecraft.world.item.ItemStack stack) {
-        MmceMachineUpgradeHelper.registerSupportedItem(stack);
+        MmceKubeJSRegistryUpgrade.addSupportedItem(stack);
     }
 
     public static void registerSupportedUpgradeItem(String itemId) {
-        MmceMachineUpgradeHelper.registerSupportedItem(itemId);
+        MmceKubeJSRegistryUpgrade.addSupportedItem(itemId);
     }
 
     public static void registerSupportedItem(net.minecraft.world.item.ItemStack stack) {
@@ -412,31 +511,27 @@ public final class MmceKubeJSBindings {
     }
 
     public static void addFixedUpgrade(net.minecraft.world.item.ItemStack stack, String upgradeName) {
-        MmceMachineUpgradeHelper.addFixedUpgrade(stack, upgradeName);
+        MmceKubeJSRegistryUpgrade.addFixedUpgrade(stack, upgradeName);
     }
 
     public static void addFixedUpgrade(net.minecraft.world.item.ItemStack stack, MmceMachineUpgrade upgrade) {
-        if (upgrade != null) {
-            addFixedUpgrade(stack, upgrade.getName());
-        }
+        MmceKubeJSRegistryUpgrade.addFixedUpgrade(stack, upgrade);
     }
 
     public static void addFixedUpgrade(String itemId, String upgradeName) {
-        MmceMachineUpgradeHelper.addFixedUpgrade(itemId, upgradeName);
+        MmceKubeJSRegistryUpgrade.addFixedUpgrade(itemId, upgradeName);
     }
 
     public static void addFixedUpgrade(String itemId, MmceMachineUpgrade upgrade) {
-        if (upgrade != null) {
-            addFixedUpgrade(itemId, upgrade.getName());
-        }
+        MmceKubeJSRegistryUpgrade.addFixedUpgrade(itemId, upgrade);
     }
 
     public static net.minecraft.world.item.ItemStack addUpgradeToItemStack(net.minecraft.world.item.ItemStack stack, String upgradeName) {
-        return MmceMachineUpgradeHelper.addUpgradeToStack(stack, upgradeName);
+        return MmceKubeJSRegistryUpgrade.addUpgradeToItemStack(stack, upgradeName);
     }
 
     public static net.minecraft.world.item.ItemStack addUpgradeToItemStack(String itemId, String upgradeName) {
-        return MmceMachineUpgradeHelper.addUpgradeToStack(itemId, upgradeName);
+        return MmceKubeJSRegistryUpgrade.addUpgradeToItemStack(itemId, upgradeName);
     }
 
     public static boolean supportsUpgrade(net.minecraft.world.item.ItemStack stack) {
@@ -461,6 +556,14 @@ public final class MmceKubeJSBindings {
 
     public static MmceMachineUpgrade registryUpgrade(String upgradeName) {
         return getUpgrade(upgradeName);
+    }
+
+    public static MmceMachineUpgrade[] getItemUpgradeList(net.minecraft.world.item.ItemStack stack) {
+        return MmceKubeJSRegistryUpgrade.getItemUpgradeList(stack);
+    }
+
+    public static java.util.List<MmceMachineUpgrade> getItemUpgrades(net.minecraft.world.item.ItemStack stack) {
+        return MmceKubeJSRegistryUpgrade.getItemUpgrades(stack);
     }
 
     public static void registerUpgrade(String upgradeName, MmceMachineUpgrade upgrade) {

@@ -1,12 +1,15 @@
 package hellfirepvp.modularmachinery.port.integration;
 
-import com.blamejared.crafttweaker.api.annotation.ZenRegister;
-import com.blamejared.crafttweaker.api.data.IData;
-import com.blamejared.crafttweaker.api.data.visitor.DataToJsonStringVisitor;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import hellfirepvp.modularmachinery.port.blockentity.UpgradeBusBlockEntity;
 import hellfirepvp.modularmachinery.port.data.MmceNbtCompat;
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -14,12 +17,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
-import org.openzen.zencode.java.ZenCodeType;
 
-import java.util.List;
-
-@ZenRegister
-@ZenCodeType.Name("mods.modularmachinery.MachineUpgrade")
 public final class MmceMachineUpgrade {
     private final ResourceLocation id;
     private final String localizedName;
@@ -64,7 +62,6 @@ public final class MmceMachineUpgrade {
         return new MmceMachineUpgrade(id, localizedName, level, maxStack, stackSize, stack, data, parentBus, busSlot);
     }
 
-    @ZenCodeType.Getter("name")
     public String getName() {
         return id.toString();
     }
@@ -73,27 +70,22 @@ public final class MmceMachineUpgrade {
         return id;
     }
 
-    @ZenCodeType.Getter("localizedName")
     public String getLocalizedName() {
         return localizedName;
     }
 
-    @ZenCodeType.Getter("level")
     public float getLevel() {
         return level;
     }
 
-    @ZenCodeType.Getter("maxStack")
     public int getMaxStack() {
         return maxStack;
     }
 
-    @ZenCodeType.Getter("stackSize")
     public int getStackSize() {
         return stackSize;
     }
 
-    @ZenCodeType.Getter("stack")
     public ItemStack getStack() {
         return stack.copy();
     }
@@ -163,47 +155,46 @@ public final class MmceMachineUpgrade {
         changed = false;
     }
 
-    @ZenCodeType.Getter("itemData")
     public String getItemData() {
         return data.getCompound("itemData").toString();
     }
 
-    @ZenCodeType.Setter("itemData")
-    public void setItemData(IData itemData) {
+    public void setItemData(CompoundTag itemData) {
         setData("itemData", itemData);
     }
 
-    @ZenCodeType.Getter("customData")
+    public void setItemData(Object itemData) {
+        setData("itemData", itemData);
+    }
+
     public String getCustomData() {
         return data.getCompound("customData").toString();
     }
 
-    @ZenCodeType.Setter("customData")
-    public void setCustomData(IData customData) {
+    public void setCustomData(CompoundTag customData) {
         setData("customData", customData);
     }
 
-    @ZenCodeType.Getter("parentStack")
+    public void setCustomData(Object customData) {
+        setData("customData", customData);
+    }
+
     public ItemStack getParentStack() {
         return getStack();
     }
 
-    @ZenCodeType.Getter("descriptions")
     public String[] getDescriptions() {
         return MmceMachineUpgradeRegistry.descriptions(this, false, staticDescriptions()).toArray(String[]::new);
     }
 
-    @ZenCodeType.Getter("busGUIDescriptions")
     public String[] getBusGUIDescriptions() {
         return MmceMachineUpgradeRegistry.descriptions(this, true, staticDescriptions()).toArray(String[]::new);
     }
 
-    @ZenCodeType.Getter("busGuiDescriptions")
     public String[] getBusGuiDescriptions() {
         return getBusGUIDescriptions();
     }
 
-    @ZenCodeType.Method
     public void decrementItemDurability(int durability) {
         if (stack.isDamageableItem()) {
             stack.setDamageValue(Math.min(stack.getMaxDamage(), stack.getDamageValue() + Math.max(0, durability)));
@@ -211,7 +202,7 @@ public final class MmceMachineUpgrade {
         }
     }
 
-    private void setData(String key, IData value) {
+    private void setData(String key, Object value) {
         if (value == null) {
             data.remove(key);
             changed = true;
@@ -221,15 +212,110 @@ public final class MmceMachineUpgrade {
         changed = true;
     }
 
-    private static CompoundTag toCompound(IData value) {
-        try {
-            JsonObject object = JsonParser.parseString(value.accept(DataToJsonStringVisitor.INSTANCE)).getAsJsonObject();
-            return MmceNbtCompat.toTag(object);
-        } catch (RuntimeException ignored) {
-            CompoundTag tag = new CompoundTag();
-            tag.putString("value", value.accept(DataToJsonStringVisitor.INSTANCE));
-            return tag;
+    private static CompoundTag toCompound(Object value) {
+        if (value instanceof CompoundTag tag) {
+            return tag.copy();
         }
+        Optional<JsonObject> object = jsonObject(value);
+        if (object.isPresent()) {
+            return MmceNbtCompat.toTag(object.get());
+        }
+        CompoundTag tag = new CompoundTag();
+        tag.putString("value", String.valueOf(value));
+        return tag;
+    }
+
+    private static Optional<JsonObject> jsonObject(Object value) {
+        if (value instanceof JsonObject object) {
+            return Optional.of(object.deepCopy());
+        }
+        if (value instanceof JsonElement element && element.isJsonObject()) {
+            return Optional.of(element.getAsJsonObject().deepCopy());
+        }
+        if (value instanceof Map<?, ?> map) {
+            return Optional.of(mapToJson(map));
+        }
+        Optional<Object> nested = invoke(value, "toJson", "asJson", "getJson");
+        if (nested.isPresent() && nested.get() != value) {
+            Optional<JsonObject> object = jsonObject(nested.get());
+            if (object.isPresent()) {
+                return object;
+            }
+        }
+        if (value instanceof CharSequence sequence) {
+            return parseJsonObject(sequence.toString());
+        }
+        try {
+            return parseJsonObject(String.valueOf(value));
+        } catch (RuntimeException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<JsonObject> parseJsonObject(String value) {
+        String json = value == null ? "" : value.trim();
+        if (json.isEmpty() || !json.startsWith("{") || !json.endsWith("}")) {
+            return Optional.empty();
+        }
+        JsonElement parsed = JsonParser.parseString(json);
+        return parsed.isJsonObject() ? Optional.of(parsed.getAsJsonObject().deepCopy()) : Optional.empty();
+    }
+
+    private static JsonObject mapToJson(Map<?, ?> map) {
+        JsonObject object = new JsonObject();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            if (entry.getKey() != null) {
+                object.add(String.valueOf(entry.getKey()), jsonElement(entry.getValue()));
+            }
+        }
+        return object;
+    }
+
+    private static JsonElement jsonElement(Object value) {
+        if (value == null) {
+            return com.google.gson.JsonNull.INSTANCE;
+        }
+        if (value instanceof JsonElement element) {
+            return element.deepCopy();
+        }
+        if (value instanceof Map<?, ?> map) {
+            return mapToJson(map);
+        }
+        if (value instanceof Iterable<?> iterable) {
+            com.google.gson.JsonArray array = new com.google.gson.JsonArray();
+            iterable.forEach(entry -> array.add(jsonElement(entry)));
+            return array;
+        }
+        if (value.getClass().isArray()) {
+            com.google.gson.JsonArray array = new com.google.gson.JsonArray();
+            int length = Array.getLength(value);
+            for (int i = 0; i < length; i++) {
+                array.add(jsonElement(Array.get(value, i)));
+            }
+            return array;
+        }
+        if (value instanceof Number number) {
+            return new com.google.gson.JsonPrimitive(number);
+        }
+        if (value instanceof Boolean bool) {
+            return new com.google.gson.JsonPrimitive(bool);
+        }
+        return new com.google.gson.JsonPrimitive(String.valueOf(value));
+    }
+
+    private static Optional<Object> invoke(Object target, String... names) {
+        if (target == null) {
+            return Optional.empty();
+        }
+        for (String name : names) {
+            try {
+                Method method = target.getClass().getMethod(name);
+                method.setAccessible(true);
+                return Optional.ofNullable(method.invoke(target));
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return Optional.empty();
     }
 
     private static void mergeKnownUpgradeTags(CompoundTag liveData, CompoundTag updated) {

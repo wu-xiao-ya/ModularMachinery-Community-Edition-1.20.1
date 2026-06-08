@@ -38,3 +38,10 @@ type="optional"
 versionRange="[2101,)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="jei"
+type="optional"
+versionRange="[19.27.0.340,)"
+ordering="AFTER"
+side="CLIENT"

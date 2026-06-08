@@ -41,6 +41,14 @@ public final class MmceUpgradeStackBuilder {
         return new MmceUpgradeStackBuilder(itemId, amount);
     }
 
+    public static MmceUpgradeStackBuilder newBuilder(String itemId) {
+        return of(itemId);
+    }
+
+    public static MmceUpgradeStackBuilder newBuilder(String itemId, int amount) {
+        return of(itemId, amount);
+    }
+
     public MmceUpgradeStackBuilder modifier(String target, String io, int operation, double multiplier) {
         return modifier(target, io, operation, multiplier, false, true);
     }
@@ -62,6 +70,30 @@ public final class MmceUpgradeStackBuilder {
             modifiers.add(modifier.tag(stackable));
         }
         return this;
+    }
+
+    public MmceUpgradeStackBuilder addModifier(String target, String io, int operation, double multiplier) {
+        return modifier(target, io, operation, multiplier);
+    }
+
+    public MmceUpgradeStackBuilder addModifier(String target, String io, int operation, double multiplier, boolean affectChance) {
+        return modifier(target, io, operation, multiplier, affectChance);
+    }
+
+    public MmceUpgradeStackBuilder addModifier(String target, String io, int operation, double multiplier, boolean affectChance, boolean stackable) {
+        return modifier(target, io, operation, multiplier, affectChance, stackable);
+    }
+
+    public MmceUpgradeStackBuilder addModifier(String target, String io, double multiplier, int operation) {
+        return modifier(target, io, operation, multiplier);
+    }
+
+    public MmceUpgradeStackBuilder addModifier(String target, String io, double multiplier, int operation, boolean affectChance) {
+        return modifier(target, io, operation, multiplier, affectChance);
+    }
+
+    public MmceUpgradeStackBuilder addModifier(String target, String io, double multiplier, int operation, boolean affectChance, boolean stackable) {
+        return modifier(target, io, operation, multiplier, affectChance, stackable);
     }
 
     public MmceUpgradeStackBuilder addModifier(MmceRecipeModifier modifier) {
@@ -87,44 +119,88 @@ public final class MmceUpgradeStackBuilder {
         return modifier("item", "input", operation, multiplier);
     }
 
+    public MmceUpgradeStackBuilder addItemInputModifier(int operation, double multiplier) {
+        return itemInputModifier(operation, multiplier);
+    }
+
     public MmceUpgradeStackBuilder itemOutputModifier(int operation, double multiplier) {
         return modifier("item", "output", operation, multiplier);
+    }
+
+    public MmceUpgradeStackBuilder addItemOutputModifier(int operation, double multiplier) {
+        return itemOutputModifier(operation, multiplier);
     }
 
     public MmceUpgradeStackBuilder fluidInputModifier(int operation, double multiplier) {
         return modifier("fluid", "input", operation, multiplier);
     }
 
+    public MmceUpgradeStackBuilder addFluidInputModifier(int operation, double multiplier) {
+        return fluidInputModifier(operation, multiplier);
+    }
+
     public MmceUpgradeStackBuilder fluidOutputModifier(int operation, double multiplier) {
         return modifier("fluid", "output", operation, multiplier);
+    }
+
+    public MmceUpgradeStackBuilder addFluidOutputModifier(int operation, double multiplier) {
+        return fluidOutputModifier(operation, multiplier);
     }
 
     public MmceUpgradeStackBuilder gasInputModifier(int operation, double multiplier) {
         return modifier("gas", "input", operation, multiplier);
     }
 
+    public MmceUpgradeStackBuilder addGasInputModifier(int operation, double multiplier) {
+        return gasInputModifier(operation, multiplier);
+    }
+
     public MmceUpgradeStackBuilder gasOutputModifier(int operation, double multiplier) {
         return modifier("gas", "output", operation, multiplier);
+    }
+
+    public MmceUpgradeStackBuilder addGasOutputModifier(int operation, double multiplier) {
+        return gasOutputModifier(operation, multiplier);
     }
 
     public MmceUpgradeStackBuilder chemicalInputModifier(int operation, double multiplier) {
         return modifier("chemical", "input", operation, multiplier);
     }
 
+    public MmceUpgradeStackBuilder addChemicalInputModifier(int operation, double multiplier) {
+        return chemicalInputModifier(operation, multiplier);
+    }
+
     public MmceUpgradeStackBuilder chemicalOutputModifier(int operation, double multiplier) {
         return modifier("chemical", "output", operation, multiplier);
+    }
+
+    public MmceUpgradeStackBuilder addChemicalOutputModifier(int operation, double multiplier) {
+        return chemicalOutputModifier(operation, multiplier);
     }
 
     public MmceUpgradeStackBuilder energyInputModifier(int operation, double multiplier) {
         return modifier("energy", "input", operation, multiplier);
     }
 
+    public MmceUpgradeStackBuilder addEnergyInputModifier(int operation, double multiplier) {
+        return energyInputModifier(operation, multiplier);
+    }
+
     public MmceUpgradeStackBuilder energyOutputModifier(int operation, double multiplier) {
         return modifier("energy", "output", operation, multiplier);
     }
 
+    public MmceUpgradeStackBuilder addEnergyOutputModifier(int operation, double multiplier) {
+        return energyOutputModifier(operation, multiplier);
+    }
+
     public MmceUpgradeStackBuilder durationModifier(int operation, double multiplier) {
         return modifier("duration", "", operation, multiplier);
+    }
+
+    public MmceUpgradeStackBuilder addDurationModifier(int operation, double multiplier) {
+        return durationModifier(operation, multiplier);
     }
 
     public MmceUpgradeStackBuilder compatibleMachines(String... machines) {
@@ -132,9 +208,17 @@ public final class MmceUpgradeStackBuilder {
         return this;
     }
 
+    public MmceUpgradeStackBuilder addCompatibleMachines(String... machines) {
+        return compatibleMachines(machines);
+    }
+
     public MmceUpgradeStackBuilder incompatibleMachines(String... machines) {
         addMachines(incompatibleMachines, machines);
         return this;
+    }
+
+    public MmceUpgradeStackBuilder addIncompatibleMachines(String... machines) {
+        return incompatibleMachines(machines);
     }
 
     public MmceUpgradeStackBuilder upgrade(String name, String localizedName, float level, int maxStack) {
@@ -143,6 +227,14 @@ public final class MmceUpgradeStackBuilder {
         this.level = level;
         this.maxStack = Math.max(1, maxStack);
         return this;
+    }
+
+    public MmceUpgradeStackBuilder setUpgrade(String name, String localizedName, float level, int maxStack) {
+        return upgrade(name, localizedName, level, maxStack);
+    }
+
+    public MmceUpgradeStackBuilder addUpgrade(String name, String localizedName, float level, int maxStack) {
+        return upgrade(name, localizedName, level, maxStack);
     }
 
     public MmceUpgradeStackBuilder descriptions(String... lines) {
@@ -155,6 +247,14 @@ public final class MmceUpgradeStackBuilder {
             }
         }
         return this;
+    }
+
+    public MmceUpgradeStackBuilder addDescriptions(String... lines) {
+        return descriptions(lines);
+    }
+
+    public MmceUpgradeStackBuilder addDescription(String line) {
+        return descriptions(line);
     }
 
     public CompoundTag customData() {

@@ -37,7 +37,7 @@
                   "y": 0,
                   "z": 0,
                   "elements": [
-                      "minecraft:glass@0"
+                      "minecraft:glass"
                   ]
               },
               {
@@ -45,7 +45,7 @@
                   "y": 0,
                   "z": 0,
                   "elements": [
-                      "minecraft:glass@0"
+                      "minecraft:glass"
                   ]
               },
               {
@@ -53,7 +53,7 @@
                   "y": 1,
                   "z": 0,
                   "elements": [
-                      "minecraft:quartz_stairs@0"
+                      "minecraft:quartz_stairs[facing=east]"
                   ]
               },
               {
@@ -61,7 +61,7 @@
                   "y": 1,
                   "z": 0,
                   "elements": [
-                      "minecraft:quartz_stairs@1"
+                      "minecraft:quartz_stairs[facing=west]"
                   ]
               },
               {

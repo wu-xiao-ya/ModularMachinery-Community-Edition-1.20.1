@@ -34,6 +34,7 @@ import hellfirepvp.modularmachinery.port.integration.MmceBlockChecker;
 import hellfirepvp.modularmachinery.port.integration.MmceDynamicMachineUpgradeBuilder;
 import hellfirepvp.modularmachinery.port.integration.MmceFactoryRecipeThreadBuilder;
 import hellfirepvp.modularmachinery.port.integration.MmceFunction;
+import hellfirepvp.modularmachinery.port.integration.MmceIngredientArrayPrimer;
 import hellfirepvp.modularmachinery.port.integration.MmceItemChecker;
 import hellfirepvp.modularmachinery.port.integration.MmceItemModifier;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
@@ -56,13 +57,16 @@ public final class MmceKubeJSPlugin implements KubeJSPlugin {
         filter.allow(MmceKubeJSIngredientArrayPrimer.class);
         filter.allow(MmceKubeJSFactoryRecipeThreadBuilder.class);
         filter.allow(MmceKubeJSRecipeThread.class);
+        filter.allow(MmceKubeJSRecipeFailureActions.class);
         filter.allow(MmceKubeJSDynamicPatternBuilder.class);
         filter.allow(MmceKubeJSMultiBlockModifierBuilder.class);
         filter.allow(MmceKubeJSMultiBlockModifierReplacement.class);
+        filter.allow(MmceKubeJSRegistryUpgrade.class);
         filter.allow(MmceRecipeAdapterBuilder.class);
         filter.allow(MmceUpgradeStackBuilder.class);
         filter.allow(MmceMachineUpgradeBuilder.class);
         filter.allow(MmceDynamicMachineUpgradeBuilder.class);
+        filter.allow(MmceIngredientArrayPrimer.class);
         filter.allow(MmceMachineUpgrade.class);
         filter.allow(MmceRecipeModifier.class);
         filter.allow(MmceRecipeModifierBuilder.class);
@@ -104,6 +108,12 @@ public final class MmceKubeJSPlugin implements KubeJSPlugin {
         bindings.add("MMCE", MmceKubeJSBindings.class);
         bindings.add("ModularMachinery", MmceKubeJSBindings.class);
         bindings.add("MMCEEvents", MmceKubeJSEvents.class);
+        bindings.add("MachineBuilder", MmceKubeJSMachineBuilder.class);
+        bindings.add("MachineRegistry", MmceKubeJSMachineBuilder.class);
+        bindings.add("RecipeAdapterBuilder", MmceRecipeAdapterBuilder.class);
+        bindings.add("UpgradeStackBuilder", MmceUpgradeStackBuilder.class);
+        bindings.add("RegistryUpgrade", MmceKubeJSRegistryUpgrade.class);
+        bindings.add("RecipeFailureActions", MmceKubeJSRecipeFailureActions.class);
     }
 
     @Override

@@ -25,6 +25,7 @@ public record MmceRecipeDefinition(
         Optional<JsonArray> startCommands,
         Optional<JsonArray> processingCommands,
         Optional<JsonArray> finishCommands,
+        Optional<JsonArray> failureCommands,
         JsonObject rawJson
 ) {
     static MmceRecipeDefinition parse(ResourceLocation sourceId, JsonElement json) {
@@ -38,14 +39,18 @@ public record MmceRecipeDefinition(
         JsonArray requirementArray = GsonHelper.getAsJsonArray(root, "requirements");
         List<MmceRecipeRequirement> parsedRequirements = new ArrayList<>(requirementArray.size());
         for (JsonElement element : requirementArray) {
-            parsedRequirements.add(MmceRecipeRequirement.parse(GsonHelper.convertToJsonObject(element, "requirements[]")));
+            JsonObject requirement = GsonHelper.convertToJsonObject(element, "requirements[]");
+            if (MmceRecipeRequirement.isLegacyDuration(requirement)) {
+                continue;
+            }
+            parsedRequirements.add(MmceRecipeRequirement.parse(requirement));
         }
 
         return new MmceRecipeDefinition(
                 MmceJsonUtil.modId(registryName),
                 sourceId,
                 MmceJsonUtil.modId(readPrimaryMachine(root)),
-                readRecipeTime(root),
+                readRecipeTime(root, requirementArray),
                 GsonHelper.getAsInt(root, "priority", 0),
                 readCancelIfPerTickFails(root),
                 readParallelized(root),
@@ -57,6 +62,8 @@ public record MmceRecipeDefinition(
                 optionalArray(root, "startCommands", "start-commands", "start_commands", "startCommand", "start-command", "start_command"),
                 optionalArray(root, "processingCommands", "processing-commands", "processing_commands", "processingCommand", "processing-command", "processing_command"),
                 optionalArray(root, "finishCommands", "finish-commands", "finish_commands", "finishCommand", "finish-command", "finish_command"),
+                optionalArray(root, "failureCommands", "failure-commands", "failure_commands", "failureCommand", "failure-command", "failure_command",
+                        "failCommands", "fail-commands", "fail_commands", "failCommand", "fail-command", "fail_command"),
                 root.deepCopy()
         );
     }
@@ -76,8 +83,10 @@ public record MmceRecipeDefinition(
         return GsonHelper.convertToString(machine, "machine");
     }
 
-    private static int readRecipeTime(JsonObject root) {
-        return readFirstInt(root, "recipeTime", "recipe-time", "recipe_time", "duration", "time");
+    private static int readRecipeTime(JsonObject root, JsonArray requirementArray) {
+        return readFirstInt(root, "recipeTime", "recipe-time", "recipe_time", "duration", "time")
+                .or(() -> readLegacyDurationRequirementTime(requirementArray))
+                .orElseThrow(() -> new IllegalArgumentException("Missing recipeTime"));
     }
 
     private static boolean readCancelIfPerTickFails(JsonObject root) {
@@ -169,13 +178,24 @@ public record MmceRecipeDefinition(
         return List.of();
     }
 
-    private static int readFirstInt(JsonObject root, String... keys) {
+    private static Optional<Integer> readFirstInt(JsonObject root, String... keys) {
         for (String key : keys) {
             if (root.has(key)) {
-                return GsonHelper.getAsInt(root, key);
+                return Optional.of(GsonHelper.getAsInt(root, key));
             }
         }
-        throw new IllegalArgumentException("Missing recipeTime");
+        return Optional.empty();
+    }
+
+    private static Optional<Integer> readLegacyDurationRequirementTime(JsonArray requirementArray) {
+        for (JsonElement element : requirementArray) {
+            JsonObject requirement = GsonHelper.convertToJsonObject(element, "requirements[]");
+            Optional<Integer> duration = MmceRecipeRequirement.readLegacyDuration(requirement);
+            if (duration.isPresent()) {
+                return duration;
+            }
+        }
+        return Optional.empty();
     }
 
     private static boolean readFirstBoolean(JsonObject root, boolean fallback, String... keys) {

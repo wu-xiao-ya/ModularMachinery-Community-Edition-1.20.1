@@ -8,7 +8,6 @@ import hellfirepvp.modularmachinery.port.data.MmceNbtCompat;
 import hellfirepvp.modularmachinery.port.data.MmceStructurePart;
 import hellfirepvp.modularmachinery.port.integration.MmceBlockChecker;
 import hellfirepvp.modularmachinery.port.integration.MmceBlockCheckerRegistry;
-import com.blamejared.crafttweaker.api.data.converter.tag.TagToDataConverter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -487,7 +486,7 @@ public final class MmceStructureMatcher {
         }
         BlockEntity blockEntity = level.getBlockEntity(worldPos);
         CompoundTag tag = blockEntity == null ? new CompoundTag() : blockEntity.saveWithoutMetadata(level.registryAccess());
-        return checker.isMatch(level, worldPos, state, TagToDataConverter.convert(tag));
+        return checker.isMatch(level, worldPos, state, tag);
     }
 
     private static boolean matchesNbt(Level level, BlockPos worldPos, com.google.gson.JsonObject expected) {

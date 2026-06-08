@@ -3,12 +3,12 @@ package hellfirepvp.modularmachinery.port.client.gui;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
 import hellfirepvp.modularmachinery.port.blockentity.FactoryControllerBlockEntity;
 import hellfirepvp.modularmachinery.port.blockentity.FluidHatchBlockEntity;
-import hellfirepvp.modularmachinery.port.blockentity.SmartInterfaceBlockEntity;
 import hellfirepvp.modularmachinery.port.data.MmceDataRegistry;
 import hellfirepvp.modularmachinery.port.data.MmceMachineDefinition;
 import hellfirepvp.modularmachinery.port.menu.MmceMachineMenu;
 import hellfirepvp.modularmachinery.port.network.MmceFluidGuiInteractPayload;
 import hellfirepvp.modularmachinery.port.network.MmceGroupInputConfigPayload;
+import hellfirepvp.modularmachinery.port.network.MmceSmartInterfaceDataPayload;
 import hellfirepvp.modularmachinery.port.network.MmceSmartInterfaceUpdatePayload;
 import hellfirepvp.modularmachinery.port.registry.MmceMenus;
 import java.util.ArrayList;
@@ -327,19 +327,28 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     }
 
     private void renderFluidBar(GuiGraphics guiGraphics, int left, int top) {
-        int filled = fillPixels(menu.fluidStored(), menu.fluidCapacity(), BAR_HEIGHT);
-        if (filled > 0 && !renderFluidContent(guiGraphics, left, top, filled)) {
-            guiGraphics.fill(left + BAR_X + 1, top + BAR_Y + BAR_HEIGHT - filled,
-                    left + BAR_X + BAR_WIDTH - 1, top + BAR_Y + BAR_HEIGHT, 0xCC4D8DFF);
+        int filled = fillPixels(fluidBarStored(), menu.fluidCapacity(), BAR_HEIGHT);
+        if (filled > 0) {
+            FluidStack fluid = storedFluid();
+            if (!fluid.isEmpty()) {
+                if (!renderFluidContent(guiGraphics, left, top, filled, fluid)) {
+                    fillFluidBar(guiGraphics, left, top, filled, 0xCC4D8DFF);
+                }
+            } else if (menu.hasStoredChemical()) {
+                fillFluidBar(guiGraphics, left, top, filled, chemicalColor(menu.storedChemicalId()));
+            } else {
+                fillFluidBar(guiGraphics, left, top, filled, 0xCC4D8DFF);
+            }
         }
         guiGraphics.blit(GUI_BAR, left + BAR_X, top + BAR_Y, 176.0F, 0.0F, BAR_WIDTH, BAR_HEIGHT, 256, 256);
     }
 
-    private boolean renderFluidContent(GuiGraphics guiGraphics, int left, int top, int filled) {
-        FluidStack fluid = storedFluid();
-        if (fluid.isEmpty()) {
-            return false;
-        }
+    private void fillFluidBar(GuiGraphics guiGraphics, int left, int top, int filled, int color) {
+        guiGraphics.fill(left + BAR_X + 1, top + BAR_Y + BAR_HEIGHT - filled,
+                left + BAR_X + BAR_WIDTH - 1, top + BAR_Y + BAR_HEIGHT, color);
+    }
+
+    private boolean renderFluidContent(GuiGraphics guiGraphics, int left, int top, int filled, FluidStack fluid) {
         IClientFluidTypeExtensions extensions = IClientFluidTypeExtensions.of(fluid.getFluid());
         ResourceLocation stillTexture = extensions.getStillTexture(fluid);
         if (stillTexture == null) {
@@ -395,21 +404,40 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     }
 
     private List<Component> energyTooltip() {
-        return List.of(Component.translatable("tooltip.energyhatch.charge",
-                formatNumber(menu.energyStored()), formatNumber(menu.energyCapacity()), "FE"));
+        return List.of(
+                Component.translatable("tooltip.energyhatch.charge",
+                        formatNumber(menu.energyStored()), formatNumber(menu.energyCapacity()), "FE"),
+                Component.translatable(menu.energyInput()
+                                ? "tooltip.energyhatch.in.accept"
+                                : "tooltip.energyhatch.out.transfer",
+                        formatNumber(menu.energyTransferLimit()))
+        );
     }
 
     private List<Component> fluidTooltip() {
         List<Component> tooltip = new ArrayList<>();
         FluidStack fluid = storedFluid();
         if (fluid.isEmpty()) {
-            tooltip.add(Component.translatable("tooltip.fluidhatch.empty"));
+            if (menu.hasStoredChemical()) {
+                tooltip.add(Component.translatable("tooltip.fluidhatch.chemical"));
+                tooltip.add(Component.literal(menu.storedChemicalName()));
+                tooltip.add(Component.literal(menu.storedChemicalIdText()));
+                tooltip.add(Component.translatable("tooltip.fluidhatch.tank.gas",
+                        formatNumber(menu.storedChemicalAmount()), formatNumber(menu.fluidCapacity())));
+                return tooltip;
+            } else {
+                tooltip.add(Component.translatable("tooltip.fluidhatch.empty"));
+            }
             tooltip.add(Component.translatable("tooltip.fluidhatch.tank", formatNumber(menu.fluidStored()), formatNumber(menu.fluidCapacity())));
             return tooltip;
         }
         tooltip.add(Component.translatable("tooltip.fluidhatch.fluid"));
         tooltip.add(fluid.getHoverName());
         tooltip.add(Component.translatable("tooltip.fluidhatch.tank", formatNumber(fluid.getAmount()), formatNumber(menu.fluidCapacity())));
+        if (menu.hasStoredChemical()) {
+            tooltip.add(Component.translatable("tooltip.fluidhatch.chemical"));
+            tooltip.add(Component.literal(menu.storedChemicalName() + " (" + formatNumber(menu.storedChemicalAmount()) + "/" + formatNumber(menu.fluidCapacity()) + ")"));
+        }
         return tooltip;
     }
 
@@ -421,6 +449,11 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             return hatch.getStoredFluid();
         }
         return FluidStack.EMPTY;
+    }
+
+    private int fluidBarStored() {
+        FluidStack fluid = storedFluid();
+        return fluid.isEmpty() ? Math.max(menu.fluidStored(), menu.storedChemicalAmount()) : fluid.getAmount();
     }
 
     private int progressPixels(int width) {
@@ -530,19 +563,22 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         int count = menu.smartInterfaceBindings().size();
         int current = count <= 0 ? 0 : smartInterfaceIndex + 1;
         drawTrimmed(guiGraphics, Component.translatable("gui.smartinterface.title", count, current).getString(), 4, 4, 168, TEXT);
-        SmartInterfaceBlockEntity.Binding binding = currentSmartBinding();
+        MmceSmartInterfaceDataPayload.BindingDetail binding = currentSmartBinding();
         if (binding == null) {
             drawTrimmed(guiGraphics, Component.translatable("gui.smartinterface.notfound").getString(), 7, 18, 162, TEXT);
             return;
         }
 
         MmceMachineDefinition machine = binding.machineId() == null ? null : MmceDataRegistry.snapshot().machines().get(binding.machineId());
-        String machineName = machine == null || machine.localizedName().isBlank()
+        String machineName = !binding.machineName().isBlank()
+                ? binding.machineName()
+                : machine == null || machine.localizedName().isBlank()
                 ? String.valueOf(binding.machineId())
                 : machine.localizedName();
         drawTrimmed(guiGraphics, machineName + " (" + posText(binding.controllerPos()) + ")", 7, 18, 162, TEXT);
         drawTrimmed(guiGraphics, smartHeader(machine, binding), 7, 30, 86, MUTED_TEXT);
         drawTrimmed(guiGraphics, smartValue(machine, binding), 7, 42, 86, TEXT);
+        drawTrimmed(guiGraphics, smartState(binding), 52, 64, 72, binding.working() ? 0xFF66E08F : MUTED_TEXT);
         drawTrimmed(guiGraphics, smartFooter(machine, binding), 7, 80, 162, MUTED_TEXT);
     }
 
@@ -553,7 +589,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         guiGraphics.drawString(font, font.plainSubstrByWidth(text, maxWidth), x, y, color, true);
     }
 
-    private String smartHeader(MmceMachineDefinition machine, SmartInterfaceBlockEntity.Binding binding) {
+    private String smartHeader(MmceMachineDefinition machine, MmceSmartInterfaceDataPayload.BindingDetail binding) {
         MmceMachineDefinition.SmartInterfaceTypeDefinition type = smartType(machine, binding.type());
         if (type != null && !type.headerInfo().isBlank()) {
             return Component.translatable(type.headerInfo()).getString();
@@ -561,7 +597,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         return "Type: " + binding.type();
     }
 
-    private String smartValue(MmceMachineDefinition machine, SmartInterfaceBlockEntity.Binding binding) {
+    private String smartValue(MmceMachineDefinition machine, MmceSmartInterfaceDataPayload.BindingDetail binding) {
         MmceMachineDefinition.SmartInterfaceTypeDefinition type = smartType(machine, binding.type());
         if (type != null && !type.valueInfo().isBlank()) {
             try {
@@ -572,12 +608,19 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         return Component.translatable("gui.smartinterface.value", binding.value()).getString();
     }
 
-    private String smartFooter(MmceMachineDefinition machine, SmartInterfaceBlockEntity.Binding binding) {
+    private String smartFooter(MmceMachineDefinition machine, MmceSmartInterfaceDataPayload.BindingDetail binding) {
         MmceMachineDefinition.SmartInterfaceTypeDefinition type = smartType(machine, binding.type());
         if (type != null && !type.footerInfo().isBlank()) {
             return Component.translatable(type.footerInfo()).getString();
         }
-        return "";
+        return binding.statusDetail();
+    }
+
+    private String smartState(MmceSmartInterfaceDataPayload.BindingDetail binding) {
+        if (!binding.controllerPresent()) {
+            return "Controller missing";
+        }
+        return binding.status().displayName();
     }
 
     private MmceMachineDefinition.SmartInterfaceTypeDefinition smartType(MmceMachineDefinition machine, String type) {
@@ -592,7 +635,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         return null;
     }
 
-    private SmartInterfaceBlockEntity.Binding currentSmartBinding() {
+    private MmceSmartInterfaceDataPayload.BindingDetail currentSmartBinding() {
         clampSmartInterfaceIndex();
         return menu.smartInterfaceBinding(smartInterfaceIndex);
     }
@@ -620,7 +663,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     }
 
     private void submitSmartInterfaceBox() {
-        SmartInterfaceBlockEntity.Binding binding = currentSmartBinding();
+        MmceSmartInterfaceDataPayload.BindingDetail binding = currentSmartBinding();
         if (binding != null && !smartInterfaceBox.getValue().isBlank()) {
             try {
                 float value = Float.parseFloat(smartInterfaceBox.getValue());
@@ -654,7 +697,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
 
     private void updateSmartInterfaceSuggestion() {
         if (smartInterfaceBox != null && smartInterfaceBox.getValue().isEmpty()) {
-            SmartInterfaceBlockEntity.Binding binding = currentSmartBinding();
+            MmceSmartInterfaceDataPayload.BindingDetail binding = currentSmartBinding();
             smartInterfaceBox.setSuggestion(binding == null ? "" : Float.toString(binding.value()));
         }
     }
@@ -709,6 +752,14 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
 
     private static String formatNumber(long value) {
         return String.format(java.util.Locale.ROOT, "%,d", value);
+    }
+
+    private static int chemicalColor(ResourceLocation chemicalId) {
+        int hash = chemicalId == null ? 0x4FBBC4 : chemicalId.toString().hashCode();
+        int red = 72 + ((hash >>> 16) & 0x7F);
+        int green = 112 + ((hash >>> 8) & 0x7F);
+        int blue = 136 + (hash & 0x6F);
+        return 0xCC000000 | (red << 16) | (green << 8) | blue;
     }
 
     private TextureSpec background() {
