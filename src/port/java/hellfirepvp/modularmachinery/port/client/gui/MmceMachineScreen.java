@@ -121,16 +121,16 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         if (menu.kind() == MmceMachineMenu.MachineMenuKind.PARALLEL_CONTROLLER) {
             guiGraphics.drawString(font, Component.literal("Max Parallelism: " + menu.maxParallelism()), 6, 20, TEXT, true);
             guiGraphics.drawString(font, Component.literal("Current Parallelism: " + menu.parallelism()), 6, 53, TEXT, true);
-            guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED_TEXT, false);
+            renderPlayerInventoryTitle(guiGraphics);
             return;
         }
         if (menu.kind() == MmceMachineMenu.MachineMenuKind.SMART_INTERFACE) {
             renderSmartInterfaceLabels(guiGraphics);
-            guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED_TEXT, false);
+            renderPlayerInventoryTitle(guiGraphics);
             return;
         }
         if (!showStatusLines()) {
-            guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED_TEXT, false);
+            renderPlayerInventoryTitle(guiGraphics);
             return;
         }
         int x = statusX();
@@ -143,7 +143,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             drawTrimmed(guiGraphics, line.getString(), x, y, maxWidth, y == statusY() ? TEXT : MUTED_TEXT);
             y += 10;
         }
-        guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED_TEXT, false);
+        renderPlayerInventoryTitle(guiGraphics);
     }
 
     @Override
@@ -260,12 +260,12 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     }
 
     private void renderControllerProgress(GuiGraphics guiGraphics, int left, int top) {
-        int progress = progressPixels(140);
+        int progress = progressPixels(160);
         if (progress <= 0) {
             return;
         }
         int color = menu.working() ? 0xFF5BE37D : 0xFF8EA7B4;
-        guiGraphics.fill(left + 11, top + 197, left + 11 + progress, top + 201, color);
+        guiGraphics.fill(left + 8, top + 185, left + 8 + progress, top + 188, color);
     }
 
     private void renderFactoryQueue(GuiGraphics guiGraphics, int left, int top) {
@@ -586,7 +586,12 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         drawTrimmed(guiGraphics, smartHeader(machine, binding), 7, 30, 86, MUTED_TEXT);
         drawTrimmed(guiGraphics, smartValue(machine, binding), 7, 42, 86, TEXT);
         drawTrimmed(guiGraphics, smartState(binding), 52, 64, 72, binding.working() ? 0xFF66E08F : MUTED_TEXT);
-        drawTrimmed(guiGraphics, smartFooter(machine, binding), 7, 80, 162, MUTED_TEXT);
+    }
+
+    private void renderPlayerInventoryTitle(GuiGraphics guiGraphics) {
+        if (showPlayerInventoryTitle()) {
+            guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED_TEXT, false);
+        }
     }
 
     private void drawTrimmed(GuiGraphics guiGraphics, String text, int x, int y, int maxWidth, int color) {
@@ -613,14 +618,6 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             }
         }
         return Component.translatable("gui.smartinterface.value", binding.value()).getString();
-    }
-
-    private String smartFooter(MmceMachineDefinition machine, MmceSmartInterfaceDataPayload.BindingDetail binding) {
-        MmceMachineDefinition.SmartInterfaceTypeDefinition type = smartType(machine, binding.type());
-        if (type != null && !type.footerInfo().isBlank()) {
-            return Component.translatable(type.footerInfo()).getString();
-        }
-        return binding.statusDetail();
     }
 
     private String smartState(MmceSmartInterfaceDataPayload.BindingDetail binding) {
@@ -802,8 +799,18 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         };
     }
 
+    private boolean showPlayerInventoryTitle() {
+        return switch (menu.kind()) {
+            case SMART_INTERFACE, PARALLEL_CONTROLLER -> false;
+            case ITEM_INPUT_BUS, ITEM_OUTPUT_BUS -> menu.machineSlotCount() < 16;
+            case UPGRADE_BUS -> menu.machineSlotCount() < 18;
+            default -> true;
+        };
+    }
+
     private int statusX() {
         return switch (menu.kind()) {
+            case FACTORY_CONTROLLER -> 112;
             case UPGRADE_BUS -> 92;
             case FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH,
                     ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> 42;
@@ -813,7 +820,8 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
 
     private int statusY() {
         return switch (menu.kind()) {
-            case CONTROLLER, FACTORY_CONTROLLER -> 20;
+            case CONTROLLER -> 20;
+            case FACTORY_CONTROLLER -> 42;
             case UPGRADE_BUS -> 23;
             case FLUID_INPUT_HATCH, FLUID_OUTPUT_HATCH, FLUID_PROCESSOR_HATCH,
                     ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> 14;
@@ -823,7 +831,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
 
     private int statusWidth(int x) {
         int rightPadding = switch (menu.kind()) {
-            case CONTROLLER -> 12;
+            case CONTROLLER -> 74;
             case UPGRADE_BUS -> 8;
             default -> 7;
         };
