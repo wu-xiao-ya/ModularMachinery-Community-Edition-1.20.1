@@ -311,8 +311,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder energyInput(long energyPerTick) {
+        return addEnergyPerTickInput(energyPerTick);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addEnergyPerTickOutput(long energyPerTick) {
         return energy("output", energyPerTick);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder energyOutput(long energyPerTick) {
+        return addEnergyPerTickOutput(energyPerTick);
     }
 
     @ZenCodeType.Method
@@ -321,8 +331,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemInput(String item, int amount) {
+        return addItemInput(item, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addItemInput(IItemStack stack) {
         return item("input", stack);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemInput(IItemStack stack) {
+        return addItemInput(stack);
     }
 
     @ZenCodeType.Method
@@ -331,8 +351,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemInput(IIngredient ingredient) {
+        return addItemInput(ingredient);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addItemInput(IIngredientWithAmount ingredient) {
         return ingredient("input", ingredient);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemInput(IIngredientWithAmount ingredient) {
+        return addItemInput(ingredient);
     }
 
     @ZenCodeType.Method
@@ -356,13 +386,28 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemInputs(IItemStack... stacks) {
+        return addItemInputs(stacks);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addItemInputs(IIngredient... ingredients) {
         return ingredients("input", ingredients);
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemInputs(IIngredient... ingredients) {
+        return addItemInputs(ingredients);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addItemInputs(IIngredientWithAmount... ingredients) {
         return ingredients("input", ingredients);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemInputs(IIngredientWithAmount... ingredients) {
+        return addItemInputs(ingredients);
     }
 
     @ZenCodeType.Method
@@ -386,8 +431,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemOutput(String item, int amount) {
+        return addItemOutput(item, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addItemOutput(IItemStack stack) {
         return item("output", stack);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemOutput(IItemStack stack) {
+        return addItemOutput(stack);
     }
 
     @ZenCodeType.Method
@@ -396,8 +451,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemOutput(IIngredient ingredient) {
+        return addItemOutput(ingredient);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addItemOutput(IIngredientWithAmount ingredient) {
         return ingredient("output", ingredient);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemOutput(IIngredientWithAmount ingredient) {
+        return addItemOutput(ingredient);
     }
 
     @ZenCodeType.Method
@@ -407,6 +472,11 @@ public class MmceCTRecipeBuilder {
         requirement.addProperty("time", Math.max(1, requiredTotalBurnTime));
         add(requirement);
         return this;
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder fuelItemInput(int requiredTotalBurnTime) {
+        return addFuelItemInput(requiredTotalBurnTime);
     }
 
     @ZenCodeType.Method
@@ -430,13 +500,28 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemOutputs(IItemStack... stacks) {
+        return addItemOutputs(stacks);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addItemOutputs(IIngredient... ingredients) {
         return ingredients("output", ingredients);
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemOutputs(IIngredient... ingredients) {
+        return addItemOutputs(ingredients);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addItemOutputs(IIngredientWithAmount... ingredients) {
         return ingredients("output", ingredients);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemOutputs(IIngredientWithAmount... ingredients) {
+        return addItemOutputs(ingredients);
     }
 
     @ZenCodeType.Method
@@ -460,8 +545,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidInput(String fluid, int amount) {
+        return addFluidInput(fluid, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addFluidInput(IFluidStack stack) {
         return fluid("input", stack, false);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidInput(IFluidStack stack) {
+        return addFluidInput(stack);
     }
 
     @ZenCodeType.Method
@@ -475,6 +570,11 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidInputs(IFluidStack... stacks) {
+        return addFluidInputs(stacks);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addInputs(IFluidStack... stacks) {
         return addFluidInputs(stacks);
     }
@@ -485,8 +585,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidOutput(String fluid, int amount) {
+        return addFluidOutput(fluid, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addFluidOutput(IFluidStack stack) {
         return fluid("output", stack, false);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidOutput(IFluidStack stack) {
+        return addFluidOutput(stack);
     }
 
     @ZenCodeType.Method
@@ -500,6 +610,11 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidOutputs(IFluidStack... stacks) {
+        return addFluidOutputs(stacks);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addOutputs(IFluidStack... stacks) {
         return addFluidOutputs(stacks);
     }
@@ -510,8 +625,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidPerTickInput(String fluid, int amount) {
+        return addFluidPerTickInput(fluid, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addFluidPerTickInput(IFluidStack stack) {
         return fluid("input", stack, true);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidPerTickInput(IFluidStack stack) {
+        return addFluidPerTickInput(stack);
     }
 
     @ZenCodeType.Method
@@ -520,8 +645,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidPerTickInputs(IFluidStack... stacks) {
+        return addFluidPerTickInputs(stacks);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addFluidPerTickOutput(String fluid, int amount) {
         return fluid("output", fluid, amount, true);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidPerTickOutput(String fluid, int amount) {
+        return addFluidPerTickOutput(fluid, amount);
     }
 
     @ZenCodeType.Method
@@ -530,8 +665,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidPerTickOutput(IFluidStack stack) {
+        return addFluidPerTickOutput(stack);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addFluidPerTickOutputs(IFluidStack... stacks) {
         return fluids("output", true, stacks);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder fluidPerTickOutputs(IFluidStack... stacks) {
+        return addFluidPerTickOutputs(stacks);
     }
 
     @ZenCodeType.Method
@@ -540,8 +685,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasInput(String gas, int amount) {
+        return addGasInput(gas, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addGasInput(Object gasStack) {
         return chemical("input", gasStack, 0, false, true);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasInput(Object gasStack) {
+        return addGasInput(gasStack);
     }
 
     @ZenCodeType.Method
@@ -550,8 +705,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasOutput(String gas, int amount) {
+        return addGasOutput(gas, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addGasOutput(Object gasStack) {
         return chemical("output", gasStack, 0, false, true);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasOutput(Object gasStack) {
+        return addGasOutput(gasStack);
     }
 
     @ZenCodeType.Method
@@ -560,8 +725,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasInputs(Object... gasStacks) {
+        return addGasInputs(gasStacks);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addGasOutputs(Object... gasStacks) {
         return chemicals("output", false, true, gasStacks);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasOutputs(Object... gasStacks) {
+        return addGasOutputs(gasStacks);
     }
 
     @ZenCodeType.Method
@@ -570,8 +745,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasPerTickInput(String gas, int amount) {
+        return addGasPerTickInput(gas, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addGasPerTickInput(Object gasStack) {
         return chemical("input", gasStack, 0, true, true);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasPerTickInput(Object gasStack) {
+        return addGasPerTickInput(gasStack);
     }
 
     @ZenCodeType.Method
@@ -580,8 +765,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasPerTickOutput(String gas, int amount) {
+        return addGasPerTickOutput(gas, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addGasPerTickOutput(Object gasStack) {
         return chemical("output", gasStack, 0, true, true);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasPerTickOutput(Object gasStack) {
+        return addGasPerTickOutput(gasStack);
     }
 
     @ZenCodeType.Method
@@ -590,8 +785,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasPerTickInputs(Object... gasStacks) {
+        return addGasPerTickInputs(gasStacks);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addGasPerTickOutputs(Object... gasStacks) {
         return chemicals("output", true, true, gasStacks);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder gasPerTickOutputs(Object... gasStacks) {
+        return addGasPerTickOutputs(gasStacks);
     }
 
     @ZenCodeType.Method
@@ -600,8 +805,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalInput(String chemical, int amount) {
+        return addChemicalInput(chemical, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addChemicalInput(Object chemicalStack) {
         return chemical("input", chemicalStack, 0, false, false);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalInput(Object chemicalStack) {
+        return addChemicalInput(chemicalStack);
     }
 
     @ZenCodeType.Method
@@ -610,8 +825,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalOutput(String chemical, int amount) {
+        return addChemicalOutput(chemical, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addChemicalOutput(Object chemicalStack) {
         return chemical("output", chemicalStack, 0, false, false);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalOutput(Object chemicalStack) {
+        return addChemicalOutput(chemicalStack);
     }
 
     @ZenCodeType.Method
@@ -620,8 +845,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalInputs(Object... chemicalStacks) {
+        return addChemicalInputs(chemicalStacks);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addChemicalOutputs(Object... chemicalStacks) {
         return chemicals("output", false, false, chemicalStacks);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalOutputs(Object... chemicalStacks) {
+        return addChemicalOutputs(chemicalStacks);
     }
 
     @ZenCodeType.Method
@@ -630,8 +865,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalPerTickInput(String chemical, int amount) {
+        return addChemicalPerTickInput(chemical, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addChemicalPerTickInput(Object chemicalStack) {
         return chemical("input", chemicalStack, 0, true, false);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalPerTickInput(Object chemicalStack) {
+        return addChemicalPerTickInput(chemicalStack);
     }
 
     @ZenCodeType.Method
@@ -640,8 +885,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalPerTickOutput(String chemical, int amount) {
+        return addChemicalPerTickOutput(chemical, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addChemicalPerTickOutput(Object chemicalStack) {
         return chemical("output", chemicalStack, 0, true, false);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalPerTickOutput(Object chemicalStack) {
+        return addChemicalPerTickOutput(chemicalStack);
     }
 
     @ZenCodeType.Method
@@ -650,8 +905,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalPerTickInputs(Object... chemicalStacks) {
+        return addChemicalPerTickInputs(chemicalStacks);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addChemicalPerTickOutputs(Object... chemicalStacks) {
         return chemicals("output", true, false, chemicalStacks);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder chemicalPerTickOutputs(Object... chemicalStacks) {
+        return addChemicalPerTickOutputs(chemicalStacks);
     }
 
     @ZenCodeType.Method
@@ -660,8 +925,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder ingredientArrayInput(String[] items, int amount) {
+        return addIngredientArrayInput(items, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addIngredientArrayInput(MmceIngredientArrayPrimer ingredientArrayPrimer) {
         return itemArray("modularmachinery:ingredient_array_input", "input", ingredientArrayPrimer);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder ingredientArrayInput(MmceIngredientArrayPrimer ingredientArrayPrimer) {
+        return addIngredientArrayInput(ingredientArrayPrimer);
     }
 
     @ZenCodeType.Method
@@ -670,13 +945,28 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder randomItemOutput(String[] items, int amount) {
+        return addRandomItemOutput(items, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addRandomItemOutput(MmceIngredientArrayPrimer ingredientArrayPrimer) {
         return itemArray("modularmachinery:ingredient_array_input", "output", ingredientArrayPrimer);
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder randomItemOutput(MmceIngredientArrayPrimer ingredientArrayPrimer) {
+        return addRandomItemOutput(ingredientArrayPrimer);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addCatalystInput(String item, int amount) {
         return itemArray("modularmachinery:catalyst", "input", new String[] { item }, amount);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(String item, int amount) {
+        return addCatalystInput(item, amount);
     }
 
     @ZenCodeType.Method
@@ -687,10 +977,20 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(IItemStack stack) {
+        return addCatalystInput(stack);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addCatalystInput(IIngredient ingredient) {
         MmceCTIngredientArrayPrimer primer = new MmceCTIngredientArrayPrimer();
         primer.addIngredient(ingredient);
         return addCatalystInput(primer);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(IIngredient ingredient) {
+        return addCatalystInput(ingredient);
     }
 
     @ZenCodeType.Method
@@ -701,13 +1001,28 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(IIngredientWithAmount ingredient) {
+        return addCatalystInput(ingredient);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addCatalystInput(String[] items, int amount) {
         return itemArray("modularmachinery:catalyst", "input", items, amount);
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(String[] items, int amount) {
+        return addCatalystInput(items, amount);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addCatalystInput(MmceIngredientArrayPrimer ingredientArrayPrimer) {
         return itemArray("modularmachinery:catalyst", "input", ingredientArrayPrimer);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(MmceIngredientArrayPrimer ingredientArrayPrimer) {
+        return addCatalystInput(ingredientArrayPrimer);
     }
 
     @ZenCodeType.Method
@@ -718,10 +1033,20 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(String item, int amount, String[] tooltips, MmceRecipeModifier[] modifiers) {
+        return addCatalystInput(item, amount, tooltips, modifiers);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addCatalystInput(IItemStack stack, String[] tooltips, MmceRecipeModifier[] modifiers) {
         addCatalystInput(stack);
         applyCatalystMetadata(tooltips, modifiers);
         return this;
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(IItemStack stack, String[] tooltips, MmceRecipeModifier[] modifiers) {
+        return addCatalystInput(stack, tooltips, modifiers);
     }
 
     @ZenCodeType.Method
@@ -732,10 +1057,20 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(IIngredient ingredient, String[] tooltips, MmceRecipeModifier[] modifiers) {
+        return addCatalystInput(ingredient, tooltips, modifiers);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addCatalystInput(IIngredientWithAmount ingredient, String[] tooltips, MmceRecipeModifier[] modifiers) {
         addCatalystInput(ingredient);
         applyCatalystMetadata(tooltips, modifiers);
         return this;
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(IIngredientWithAmount ingredient, String[] tooltips, MmceRecipeModifier[] modifiers) {
+        return addCatalystInput(ingredient, tooltips, modifiers);
     }
 
     @ZenCodeType.Method
@@ -746,6 +1081,11 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(String[] items, int amount, String[] tooltips, MmceRecipeModifier[] modifiers) {
+        return addCatalystInput(items, amount, tooltips, modifiers);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addCatalystInput(MmceIngredientArrayPrimer ingredientArrayPrimer, String[] tooltips, MmceRecipeModifier[] modifiers) {
         itemArray("modularmachinery:catalyst", "input", ingredientArrayPrimer);
         applyCatalystMetadata(tooltips, modifiers);
@@ -753,8 +1093,18 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder catalystInput(MmceIngredientArrayPrimer ingredientArrayPrimer, String[] tooltips, MmceRecipeModifier[] modifiers) {
+        return addCatalystInput(ingredientArrayPrimer, tooltips, modifiers);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addSmartInterfaceDataInput(String type, float value) {
         return addSmartInterfaceDataInput(type, value, value);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder smartInterfaceDataInput(String type, float value) {
+        return addSmartInterfaceDataInput(type, value);
     }
 
     @ZenCodeType.Method
@@ -765,6 +1115,11 @@ public class MmceCTRecipeBuilder {
         requirement.addProperty("maxValue", maxValue);
         add(requirement);
         return this;
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder smartInterfaceDataInput(String type, float minValue, float maxValue) {
+        return addSmartInterfaceDataInput(type, minValue, maxValue);
     }
 
     @ZenCodeType.Method
@@ -851,6 +1206,11 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder nbt(String json) {
+        return setNbt(json);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder setNBT(String json) {
         return setNbt(json);
     }
@@ -861,11 +1221,31 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemChecker(MmceItemChecker checker) {
+        return setNBTChecker(checker);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder setItemChecker(MmceItemChecker checker) {
+        return setNBTChecker(checker);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder setNBTChecker(String checkerId, MmceItemChecker checker) {
         if (lastRequirement != null && checker != null) {
             lastRequirement.addProperty("checker-id", MmceItemCallbackRegistry.registerChecker(checkerId, checker));
         }
         return this;
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemChecker(String checkerId, MmceItemChecker checker) {
+        return setNBTChecker(checkerId, checker);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder setItemChecker(String checkerId, MmceItemChecker checker) {
+        return setNBTChecker(checkerId, checker);
     }
 
     @ZenCodeType.Method
@@ -884,6 +1264,16 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemModifier(MmceItemModifier modifier) {
+        return addItemModifier(modifier);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder setItemModifier(MmceItemModifier modifier) {
+        return addItemModifier(modifier);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder addItemModifier(String modifierId, MmceItemModifier modifier) {
         if (lastRequirement != null && modifier != null) {
             lastRequirement.addProperty("item-modifier-id", MmceItemCallbackRegistry.registerModifier(modifierId, modifier));
@@ -892,11 +1282,26 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder itemModifier(String modifierId, MmceItemModifier modifier) {
+        return addItemModifier(modifierId, modifier);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder setItemModifier(String modifierId, MmceItemModifier modifier) {
+        return addItemModifier(modifierId, modifier);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder setDisplayNbt(String json) {
         if (lastRequirement != null && json != null && !json.isBlank()) {
             lastRequirement.add("nbt-display", parseObject(json));
         }
         return this;
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder displayNbt(String json) {
+        return setDisplayNbt(json);
     }
 
     @ZenCodeType.Method

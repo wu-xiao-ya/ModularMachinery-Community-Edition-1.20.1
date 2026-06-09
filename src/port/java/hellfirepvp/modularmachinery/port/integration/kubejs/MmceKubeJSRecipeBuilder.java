@@ -868,6 +868,10 @@ public final class MmceKubeJSRecipeBuilder {
         return selectorTag(tag);
     }
 
+    public MmceKubeJSRecipeBuilder selector_tag(String tag) {
+        return selectorTag(tag);
+    }
+
     public MmceKubeJSRecipeBuilder consumeDurability(int durability) {
         if (lastRequirement != null) {
             lastRequirement.addProperty("consumeDurability", Math.max(0, durability));
@@ -886,6 +890,14 @@ public final class MmceKubeJSRecipeBuilder {
     }
 
     public MmceKubeJSRecipeBuilder setMinMaxAmount(int min, int max) {
+        return minMaxAmount(min, max);
+    }
+
+    public MmceKubeJSRecipeBuilder setMinMaxOutputAmount(int min, int max) {
+        return minMaxAmount(min, max);
+    }
+
+    public MmceKubeJSRecipeBuilder minMaxOutputAmount(int min, int max) {
         return minMaxAmount(min, max);
     }
 
@@ -1004,11 +1016,19 @@ public final class MmceKubeJSRecipeBuilder {
         return this;
     }
 
+    public MmceKubeJSRecipeBuilder setTriggerTime(int tickTime) {
+        return triggerTime(tickTime);
+    }
+
     public MmceKubeJSRecipeBuilder triggerRepeatable(boolean repeatable) {
         if (lastRequirement != null) {
             lastRequirement.addProperty("triggerRepeatable", repeatable);
         }
         return this;
+    }
+
+    public MmceKubeJSRecipeBuilder setTriggerRepeatable(boolean repeatable) {
+        return triggerRepeatable(repeatable);
     }
 
     public MmceKubeJSRecipeBuilder ignoreOutputCheck(boolean ignore) {
@@ -1018,11 +1038,19 @@ public final class MmceKubeJSRecipeBuilder {
         return this;
     }
 
+    public MmceKubeJSRecipeBuilder setIgnoreOutputCheck(boolean ignore) {
+        return ignoreOutputCheck(ignore);
+    }
+
     public MmceKubeJSRecipeBuilder parallelizeUnaffected(boolean unaffected) {
         if (lastRequirement != null) {
             lastRequirement.addProperty("parallelizeUnaffected", unaffected);
         }
         return this;
+    }
+
+    public MmceKubeJSRecipeBuilder setParallelizeUnaffected(boolean unaffected) {
+        return parallelizeUnaffected(unaffected);
     }
 
     public MmceKubeJSRecipeBuilder startCommand(String command) {

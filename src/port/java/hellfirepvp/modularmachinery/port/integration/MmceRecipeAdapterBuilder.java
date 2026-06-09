@@ -85,6 +85,14 @@ public final class MmceRecipeAdapterBuilder {
         return parallelized(value);
     }
 
+    public MmceRecipeAdapterBuilder parallelize(boolean value) {
+        return parallelized(value);
+    }
+
+    public MmceRecipeAdapterBuilder setParallelize(boolean value) {
+        return parallelize(value);
+    }
+
     public MmceRecipeAdapterBuilder maxThreads(int value) {
         root.addProperty("maxThreads", Math.max(-1, value));
         return this;
