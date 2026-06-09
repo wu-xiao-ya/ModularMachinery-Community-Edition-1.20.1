@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
+import hellfirepvp.modularmachinery.port.blockentity.MachineControllerBlockEntity;
 import hellfirepvp.modularmachinery.port.data.MmceScriptDataRegistry;
 import hellfirepvp.modularmachinery.port.event.MmceControllerButtonClickEvent;
 import hellfirepvp.modularmachinery.port.event.MmceControllerGUIRenderEvent;
@@ -165,6 +166,10 @@ public final class MmceKubeJSBindings {
 
     public static Class<MmceKubeJSFactoryRecipeThreadBuilder> factoryRecipeThreadBuilderClass() {
         return MmceKubeJSFactoryRecipeThreadBuilder.class;
+    }
+
+    public static Class<MmceKubeJSMachineController> machineControllerClass() {
+        return MmceKubeJSMachineController.class;
     }
 
     public static Class<MmceRecipeAdapterBuilder> recipeAdapterBuilderClass() {
@@ -330,6 +335,46 @@ public final class MmceKubeJSBindings {
 
     public static MmceKubeJSFactoryRecipeThreadBuilder factoryRecipeThread(MmceRecipeEvent event) {
         return event == null ? null : event.getKubeJSFactoryRecipeThread();
+    }
+
+    public static MmceKubeJSMachineController controller(MachineControllerBlockEntity controller) {
+        return MmceKubeJSMachineController.of(controller);
+    }
+
+    public static MmceKubeJSMachineController controller(MmceMachineEvent event) {
+        return event == null ? null : controller(event.getController());
+    }
+
+    public static MmceKubeJSMachineController controller(MmceRecipeEvent event) {
+        return event == null ? null : controller(event.getController());
+    }
+
+    public static MmceKubeJSMachineController controller(MmceControllerGUIRenderEvent event) {
+        return event == null ? null : controller(event.getController());
+    }
+
+    public static MmceKubeJSMachineController controller(MmceControllerButtonClickEvent event) {
+        return event == null ? null : controller(event.getController());
+    }
+
+    public static MmceKubeJSMachineController wrapController(MachineControllerBlockEntity controller) {
+        return controller(controller);
+    }
+
+    public static MmceKubeJSMachineController wrapController(MmceMachineEvent event) {
+        return controller(event);
+    }
+
+    public static MmceKubeJSMachineController wrapController(MmceRecipeEvent event) {
+        return controller(event);
+    }
+
+    public static MmceKubeJSMachineController wrapController(MmceControllerGUIRenderEvent event) {
+        return controller(event);
+    }
+
+    public static MmceKubeJSMachineController wrapController(MmceControllerButtonClickEvent event) {
+        return controller(event);
     }
 
     public static MmceKubeJSDynamicPatternBuilder dynamicPattern(String name) {

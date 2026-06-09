@@ -2,6 +2,7 @@ package hellfirepvp.modularmachinery.port.data;
 
 import com.google.gson.JsonObject;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
+import hellfirepvp.modularmachinery.port.recipe.MmceRequirementRuntimeExecutor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,12 +43,18 @@ public record MmceRecipeRequirement(
     private record RequirementType(
             Optional<MmceIoType> defaultIoType,
             RequirementParser parser,
-            RequirementIssueReporter issueReporter
+            RequirementIssueReporter issueReporter,
+            Optional<MmceRequirementRuntimeExecutor> runtimeExecutor
     ) {
         private RequirementType {
             defaultIoType = defaultIoType == null ? Optional.empty() : defaultIoType;
             parser = Objects.requireNonNull(parser, "parser");
-            issueReporter = issueReporter == null ? MmceRecipeRequirement::runtimeUnsupportedIssue : issueReporter;
+            runtimeExecutor = runtimeExecutor == null ? Optional.empty() : runtimeExecutor;
+            issueReporter = issueReporter == null
+                    ? (runtimeExecutor.isPresent()
+                    ? MmceRecipeRequirement::defaultRegisteredIssue
+                    : MmceRecipeRequirement::runtimeUnsupportedIssue)
+                    : issueReporter;
         }
     }
 
@@ -70,8 +77,41 @@ public record MmceRecipeRequirement(
 
     public static void registerType(ResourceLocation type, Optional<MmceIoType> defaultIoType, RequirementParser parser,
                                     RequirementIssueReporter issueReporter) {
+        registerType(type, defaultIoType, parser, issueReporter, null);
+    }
+
+    public static void registerRuntimeType(ResourceLocation type, RequirementParser parser,
+                                           MmceRequirementRuntimeExecutor runtimeExecutor) {
+        registerRuntimeType(type, Optional.empty(), parser, runtimeExecutor);
+    }
+
+    public static void registerRuntimeType(ResourceLocation type, MmceIoType defaultIoType, RequirementParser parser,
+                                           MmceRequirementRuntimeExecutor runtimeExecutor) {
+        registerRuntimeType(type, Optional.ofNullable(defaultIoType), parser, runtimeExecutor);
+    }
+
+    public static void registerRuntimeType(ResourceLocation type, Optional<MmceIoType> defaultIoType,
+                                           RequirementParser parser, MmceRequirementRuntimeExecutor runtimeExecutor) {
+        registerType(type, defaultIoType, parser, null, Objects.requireNonNull(runtimeExecutor, "runtimeExecutor"));
+    }
+
+    public static void registerRuntimeType(ResourceLocation type, Optional<MmceIoType> defaultIoType,
+                                           RequirementParser parser, RequirementIssueReporter issueReporter,
+                                           MmceRequirementRuntimeExecutor runtimeExecutor) {
+        registerType(type, defaultIoType, parser, issueReporter, Objects.requireNonNull(runtimeExecutor, "runtimeExecutor"));
+    }
+
+    private static void registerType(ResourceLocation type, Optional<MmceIoType> defaultIoType, RequirementParser parser,
+                                     RequirementIssueReporter issueReporter,
+                                     MmceRequirementRuntimeExecutor runtimeExecutor) {
         ResourceLocation normalizedType = normalizeType(Objects.requireNonNull(type, "type"));
-        REQUIREMENT_TYPES.put(normalizedType, new RequirementType(defaultIoType, parser, issueReporter));
+        REQUIREMENT_TYPES.put(normalizedType, new RequirementType(defaultIoType, parser, issueReporter,
+                Optional.ofNullable(runtimeExecutor)));
+    }
+
+    public Optional<MmceRequirementRuntimeExecutor> runtimeExecutor() {
+        RequirementType registered = REQUIREMENT_TYPES.get(type);
+        return registered == null ? Optional.empty() : registered.runtimeExecutor();
     }
 
     static MmceRecipeRequirement parse(JsonObject object) {

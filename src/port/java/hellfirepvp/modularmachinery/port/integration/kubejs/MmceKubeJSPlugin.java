@@ -57,6 +57,7 @@ public final class MmceKubeJSPlugin implements KubeJSPlugin {
         filter.allow(MmceKubeJSIngredientArrayPrimer.class);
         filter.allow(MmceKubeJSFactoryRecipeThreadBuilder.class);
         filter.allow(MmceKubeJSRecipeThread.class);
+        filter.allow(MmceKubeJSMachineController.class);
         filter.allow(MmceKubeJSRecipeFailureActions.class);
         filter.allow(MmceKubeJSDynamicPatternBuilder.class);
         filter.allow(MmceKubeJSMultiBlockModifierBuilder.class);
@@ -118,6 +119,7 @@ public final class MmceKubeJSPlugin implements KubeJSPlugin {
         bindings.add("DynamicPatternBuilder", MmceKubeJSBindings.class);
         bindings.add("FactoryRecipeThread", MmceKubeJSBindings.class);
         bindings.add("FactoryRecipeThreadBuilder", MmceKubeJSBindings.class);
+        bindings.add("MachineController", MmceKubeJSMachineController.class);
         bindings.add("MachineModifier", MmceKubeJSBindings.class);
         bindings.add("RecipeAdapterBuilder", MmceRecipeAdapterBuilder.class);
         bindings.add("RecipeModifierBuilder", MmceRecipeModifierBuilder.class);

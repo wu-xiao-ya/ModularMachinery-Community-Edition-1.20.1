@@ -391,7 +391,7 @@ public final class MmceRecipeExecutor {
                     MmceMachineComponents inputComponents = components.forInputGroup(inputGroupId);
                     CatalystSelection catalystSelection = selectCatalysts(controller, recipe, inputComponents, checkedParallelism, modifiers);
                     MmceRecipeModifiers effectiveModifiers = modifiers.withAdditional(catalystSelection.modifiers());
-                    StartCheck check = canStart(controller, recipe, inputComponents, checkedParallelism, effectiveModifiers);
+                    StartCheck check = canStart(controller, run, machineId, recipe, inputComponents, checkedParallelism, effectiveModifiers);
                     if (check.ok()) {
                         StartCheck postCheck = postCheckEvent(controller, machineId, run, recipe, checkedParallelism,
                                 MmceRecipeStatus.RUNNING, "", MmceEventPhase.END);
@@ -400,7 +400,7 @@ public final class MmceRecipeExecutor {
                             if (finalParallelism != checkedParallelism) {
                                 catalystSelection = selectCatalysts(controller, recipe, inputComponents, finalParallelism, modifiers);
                                 effectiveModifiers = modifiers.withAdditional(catalystSelection.modifiers());
-                                check = canStart(controller, recipe, inputComponents, finalParallelism, effectiveModifiers);
+                                check = canStart(controller, run, machineId, recipe, inputComponents, finalParallelism, effectiveModifiers);
                                 if (!check.ok()) {
                                     lastFailure = check;
                                     continue;
@@ -500,7 +500,9 @@ public final class MmceRecipeExecutor {
         );
     }
 
-    private static StartCheck canStart(MachineControllerBlockEntity controller, MmceRecipeDefinition recipe, MmceMachineComponents components, int parallelism, MmceRecipeModifiers modifiers) {
+    private static StartCheck canStart(MachineControllerBlockEntity controller, RecipeRun run, ResourceLocation machineId,
+                                       MmceRecipeDefinition recipe, MmceMachineComponents components, int parallelism,
+                                       MmceRecipeModifiers modifiers) {
         StartCheck supportCheck = checkSupported(recipe);
         if (!supportCheck.ok()) {
             return supportCheck;
@@ -568,6 +570,12 @@ public final class MmceRecipeExecutor {
                     && !smartInterfaceInRange(components, selected.selectorTag(), smartRequirement)) {
                 return StartCheck.failure(MmceRecipeStatus.MISSING_INPUT,
                         recipe.id() + " smart interface " + smartRequirement.interfaceType());
+            } else if (selected.runtimeExecutor().isPresent()) {
+                MmceRequirementRuntimeResult result = executeRuntimeRequirement(controller, run, machineId, recipe,
+                        selected, components, 0, null, parallelism, modifiers, MmceRequirementRuntimePhase.CAN_START);
+                if (!result.ok()) {
+                    return StartCheck.failure(result.status(), result.detail());
+                }
             }
         }
 
@@ -603,14 +611,19 @@ public final class MmceRecipeExecutor {
                                                         MmceRecipeDefinition recipe, MmceMachineComponents components, int tick,
                                                         RandomSource random, int parallelism, MmceRecipeModifiers modifiers) {
         TickChanceSelection chanceSelection = selectPerTickChance(controller, run, machineId, recipe, tick, random, parallelism, modifiers);
-        TickCheck simulation = simulatePerTickRequirements(controller, recipe, components, tick, parallelism, modifiers, chanceSelection);
+        TickCheck simulation = simulatePerTickRequirements(controller, run, machineId, recipe, components, tick, random,
+                parallelism, modifiers, chanceSelection);
         if (!simulation.ok()) {
             return simulation;
         }
         return applyPerTickRequirements(controller, run, machineId, recipe, components, tick, random, parallelism, modifiers, chanceSelection);
     }
 
-    private static TickCheck simulatePerTickRequirements(MachineControllerBlockEntity controller, MmceRecipeDefinition recipe, MmceMachineComponents components, int tick, int parallelism, MmceRecipeModifiers modifiers, TickChanceSelection chanceSelection) {
+    private static TickCheck simulatePerTickRequirements(MachineControllerBlockEntity controller, RecipeRun run,
+                                                         ResourceLocation machineId, MmceRecipeDefinition recipe,
+                                                         MmceMachineComponents components, int tick, RandomSource random,
+                                                         int parallelism, MmceRecipeModifiers modifiers,
+                                                         TickChanceSelection chanceSelection) {
         ComponentViews views = ComponentViews.copy(components);
         for (SelectedRequirement selected : selectedRequirements(recipe)) {
             MmceParsedRequirement requirement = selected.parsed();
@@ -635,7 +648,7 @@ public final class MmceRecipeExecutor {
                 } else if (!chemicalRequirement.ignoreOutputCheck() && !views.chemicalOutputs(selected.selectorTag()).fill(chemicalRequirement, amount)) {
                     return TickCheck.failure(MmceRecipeStatus.OUTPUT_BLOCKED, recipe.id() + " gas/t output");
                 }
-            } else if (shouldTriggerInput(requirement, tick)) {
+            } else if (shouldTriggerInput(selected, tick)) {
                 if (requirement instanceof MmceItemRequirement itemRequirement) {
                     if (!views.itemInputs(selected.selectorTag()).consume(controller, itemRequirement, amountFor(itemRequirement, itemRequirement.amount(), parallelism, modifiers))) {
                         return TickCheck.failure(MmceRecipeStatus.MISSING_INPUT, recipe.id() + " triggered item input");
@@ -665,6 +678,13 @@ public final class MmceRecipeExecutor {
                     }
                 } else if (!energyRequirement.ignoreOutputCheck() && !views.energyOutputs(selected.selectorTag()).receive(energy)) {
                     return TickCheck.failure(MmceRecipeStatus.OUTPUT_BLOCKED, recipe.id() + " energy output");
+                }
+            } else if (selected.runtimeExecutor().isPresent() && shouldRunRuntimeAtTick(selected, tick)) {
+                MmceRequirementRuntimeResult result = executeRuntimeRequirement(controller, run, machineId, recipe,
+                        selected, components, tick, random, parallelism, modifiers,
+                        MmceRequirementRuntimePhase.SIMULATE_TICK);
+                if (!result.ok()) {
+                    return TickCheck.failure(result.status(), result.detail());
                 }
             }
         }
@@ -700,7 +720,7 @@ public final class MmceRecipeExecutor {
                         && !chemicalRequirement.ignoreOutputCheck()) {
                     return TickCheck.failure(MmceRecipeStatus.OUTPUT_BLOCKED, recipe.id() + " gas/t output");
                 }
-            } else if (shouldTriggerInput(requirement, tick)) {
+            } else if (shouldTriggerInput(selected, tick)) {
                 if (requirement instanceof MmceItemRequirement itemRequirement) {
                     int amount = amountFor(itemRequirement, itemRequirement.amount(), parallelism, modifiers);
                     if (consumeItem(controller, components.itemInputs(selected.selectorTag()), itemRequirement, amount) < amount) {
@@ -735,6 +755,13 @@ public final class MmceRecipeExecutor {
                     }
                 } else if (!views.energyOutputs(selected.selectorTag()).receive(energy) && !energyRequirement.ignoreOutputCheck()) {
                     return TickCheck.failure(MmceRecipeStatus.OUTPUT_BLOCKED, recipe.id() + " energy output");
+                }
+            } else if (selected.runtimeExecutor().isPresent() && shouldRunRuntimeAtTick(selected, tick)) {
+                MmceRequirementRuntimeResult result = executeRuntimeRequirement(controller, run, machineId, recipe,
+                        selected, components, tick, random, parallelism, modifiers,
+                        MmceRequirementRuntimePhase.APPLY_TICK);
+                if (!result.ok()) {
+                    return TickCheck.failure(result.status(), result.detail());
                 }
             }
         }
@@ -774,12 +801,20 @@ public final class MmceRecipeExecutor {
                     && chemicalRequirement.ioType() == MmceIoType.INPUT
                     && !chemicalRequirement.perTick()) {
                 drainChemical(components.fluidInputs(selected.selectorTag()), chemicalRequirement, amountFor(chemicalRequirement, chemicalRequirement.amount(), parallelism, effectiveModifiers));
+            } else if (selected.runtimeExecutor().isPresent() && requirement.ioType() == MmceIoType.INPUT) {
+                MmceRequirementRuntimeResult result = executeRuntimeRequirement(controller, run, machineId, recipe,
+                        selected, components, 0, random, parallelism, effectiveModifiers,
+                        MmceRequirementRuntimePhase.CONSUME_START);
+                if (!result.ok()) {
+                    return false;
+                }
             }
         }
         return true;
     }
 
-    private static boolean canFinish(MachineControllerBlockEntity controller, MmceRecipeDefinition recipe, MmceMachineComponents components, int parallelism, MmceRecipeModifiers modifiers) {
+    private static boolean canFinish(MachineControllerBlockEntity controller, RecipeRun run, MmceRecipeDefinition recipe,
+                                     MmceMachineComponents components, int parallelism, MmceRecipeModifiers modifiers) {
         ComponentViews views = ComponentViews.copy(components);
 
         for (SelectedRequirement selected : selectedRequirements(recipe)) {
@@ -807,6 +842,13 @@ public final class MmceRecipeExecutor {
                 if (!views.chemicalOutputs(selected.selectorTag()).fill(chemicalRequirement, amountFor(chemicalRequirement, chemicalRequirement.amount(), parallelism, modifiers))) {
                     return false;
                 }
+            } else if (selected.runtimeExecutor().isPresent() && requirement.ioType() == MmceIoType.OUTPUT) {
+                MmceRequirementRuntimeResult result = executeRuntimeRequirement(controller, run,
+                        controller.getMachineId().orElse(recipe.machineId()), recipe, selected, components, 0, null,
+                        parallelism, modifiers, MmceRequirementRuntimePhase.CAN_FINISH);
+                if (!result.ok()) {
+                    return false;
+                }
             }
         }
 
@@ -814,7 +856,7 @@ public final class MmceRecipeExecutor {
     }
 
     private static void finishOrBlock(MachineControllerBlockEntity controller, RecipeRun run, MmceRecipeDefinition recipe, MmceMachineComponents components, RandomSource random, int parallelism, MmceRecipeModifiers modifiers) {
-        if (canFinish(controller, recipe, components, parallelism, modifiers)) {
+        if (canFinish(controller, run, recipe, components, parallelism, modifiers)) {
             MmceRecipeEvent finishEvent = postRecipeEvent(finishEvent(controller, run,
                     controller.getMachineId().orElse(recipe.machineId()), recipe, modifiers, parallelism));
             if (finishEvent.isFailed()) {
@@ -924,6 +966,9 @@ public final class MmceRecipeExecutor {
                 fillFluid(components.fluidOutputs(selected.selectorTag()), fluidRequirement, amountFor(fluidRequirement, fluidRequirement.amount(), parallelism, modifiers));
             } else if (requirement instanceof MmceChemicalRequirement chemicalRequirement && !chemicalRequirement.perTick()) {
                 fillChemical(components.fluidOutputs(selected.selectorTag()), chemicalRequirement, amountFor(chemicalRequirement, chemicalRequirement.amount(), parallelism, modifiers));
+            } else if (selected.runtimeExecutor().isPresent()) {
+                executeRuntimeRequirement(controller, run, machineId, recipe, selected, components, 0, random, parallelism,
+                        modifiers, MmceRequirementRuntimePhase.FINISH_OUTPUT);
             }
         }
     }
@@ -934,7 +979,7 @@ public final class MmceRecipeExecutor {
             MmceRecipeRequirement requirement = recipe.requirements().get(index);
             int requirementIndex = index;
             requirement.parsed().ifPresent(parsed ->
-                    selected.add(new SelectedRequirement(requirementIndex, parsed, requirement.selectorTag())));
+                    selected.add(new SelectedRequirement(requirementIndex, requirement, parsed, requirement.selectorTag())));
         }
         return selected;
     }
@@ -945,24 +990,41 @@ public final class MmceRecipeExecutor {
         Map<SelectedRequirement, Boolean> decisions = new LinkedHashMap<>();
         for (SelectedRequirement selected : selectedRequirements(recipe)) {
             MmceParsedRequirement requirement = selected.parsed();
-            if (requiresPerTickChance(requirement) || shouldTriggerInput(requirement, tick)) {
+            if (requiresPerTickChance(selected) || shouldTriggerInput(selected, tick)) {
                 decisions.put(selected, rollChance(controller, run, machineId, recipe, requirement, random, parallelism, modifiers));
             }
         }
         return new TickChanceSelection(decisions);
     }
 
-    private static boolean requiresPerTickChance(MmceParsedRequirement requirement) {
+    private static boolean requiresPerTickChance(SelectedRequirement selected) {
+        MmceParsedRequirement requirement = selected.parsed();
         return (requirement instanceof MmceFluidRequirement fluidRequirement && fluidRequirement.perTick())
-                || (requirement instanceof MmceChemicalRequirement chemicalRequirement && chemicalRequirement.perTick());
+                || (requirement instanceof MmceChemicalRequirement chemicalRequirement && chemicalRequirement.perTick())
+                || selected.runtimeExecutor()
+                .map(executor -> executor.requiresPerTickChance(requirement))
+                .orElse(false);
     }
 
-    private static boolean shouldTriggerInput(MmceParsedRequirement requirement, int tick) {
+    private static boolean shouldTriggerInput(SelectedRequirement selected, int tick) {
+        MmceParsedRequirement requirement = selected.parsed();
+        if (selected.runtimeExecutor().isPresent()) {
+            return selected.runtimeExecutor()
+                    .map(executor -> executor.shouldTriggerInput(requirement, tick))
+                    .orElse(false);
+        }
         return requirement.ioType() == MmceIoType.INPUT
                 && shouldTriggerAtTick(requirement, tick)
                 && !(requirement instanceof MmceFluidRequirement fluidRequirement && fluidRequirement.perTick())
                 && !(requirement instanceof MmceChemicalRequirement chemicalRequirement && chemicalRequirement.perTick())
                 && !(requirement instanceof MmceEnergyRequirement);
+    }
+
+    private static boolean shouldRunRuntimeAtTick(SelectedRequirement selected, int tick) {
+        return selected.runtimeExecutor()
+                .map(executor -> executor.shouldRunPerTick(selected.parsed(), tick)
+                        || executor.shouldTriggerInput(selected.parsed(), tick))
+                .orElse(false);
     }
 
     private static boolean shouldTriggerAtTick(MmceParsedRequirement requirement, int tick) {
@@ -997,7 +1059,7 @@ public final class MmceRecipeExecutor {
         return parallelism > 1 ? recipe.id() + " x" + parallelism : recipe.id().toString();
     }
 
-    private static int amountFor(MmceParsedRequirement requirement, int amount, int parallelism, MmceRecipeModifiers modifiers) {
+    static int amountFor(MmceParsedRequirement requirement, int amount, int parallelism, MmceRecipeModifiers modifiers) {
         int modifiedAmount = modifiedAmountFor(requirement, amount, modifiers);
         if (requirement.parallelizeUnaffected()) {
             return modifiedAmount;
@@ -1018,7 +1080,7 @@ public final class MmceRecipeExecutor {
         return amountFor(requirement, requirement.maxAmount(), parallelism, modifiers);
     }
 
-    private static long amountFor(MmceParsedRequirement requirement, long amount, int parallelism, MmceRecipeModifiers modifiers) {
+    static long amountFor(MmceParsedRequirement requirement, long amount, int parallelism, MmceRecipeModifiers modifiers) {
         long modifiedAmount = modifiers.energyAmount(requirement, amount);
         if (requirement.parallelizeUnaffected()) {
             return modifiedAmount;
@@ -1050,9 +1112,9 @@ public final class MmceRecipeExecutor {
         return random.nextFloat() < chance;
     }
 
-    private static boolean rollChance(MachineControllerBlockEntity controller, RecipeRun run, ResourceLocation machineId,
-                                      MmceRecipeDefinition recipe, MmceParsedRequirement requirement, RandomSource random,
-                                      int parallelism, MmceRecipeModifiers modifiers) {
+    static boolean rollChance(MachineControllerBlockEntity controller, RecipeRun run, ResourceLocation machineId,
+                              MmceRecipeDefinition recipe, MmceParsedRequirement requirement, RandomSource random,
+                              int parallelism, MmceRecipeModifiers modifiers) {
         float chance = modifiers.chance(requirement, requirement.chance());
         MmceResultChanceCreateEvent event = bindRun(new MmceResultChanceCreateEvent(
                 controller,
@@ -1081,7 +1143,42 @@ public final class MmceRecipeExecutor {
         return false;
     }
 
-    private record SelectedRequirement(int index, MmceParsedRequirement parsed, Optional<String> selectorTag) {
+    private static MmceRequirementRuntimeResult executeRuntimeRequirement(
+            MachineControllerBlockEntity controller,
+            RecipeRun run,
+            ResourceLocation machineId,
+            MmceRecipeDefinition recipe,
+            SelectedRequirement selected,
+            MmceMachineComponents components,
+            int tick,
+            RandomSource random,
+            int parallelism,
+            MmceRecipeModifiers modifiers,
+            MmceRequirementRuntimePhase phase
+    ) {
+        return selected.runtimeExecutor()
+                .map(executor -> executor.execute(new MmceRequirementRuntimeContext(
+                        controller,
+                        run,
+                        machineId,
+                        recipe,
+                        selected.definition(),
+                        selected.parsed(),
+                        components,
+                        selected.selectorTag(),
+                        tick,
+                        random,
+                        parallelism,
+                        modifiers
+                ), phase))
+                .orElseGet(MmceRequirementRuntimeResult::success);
+    }
+
+    private record SelectedRequirement(int index, MmceRecipeRequirement definition, MmceParsedRequirement parsed,
+                                       Optional<String> selectorTag) {
+        Optional<MmceRequirementRuntimeExecutor> runtimeExecutor() {
+            return definition.runtimeExecutor();
+        }
     }
 
     private record TickChanceSelection(Map<SelectedRequirement, Boolean> decisions) {
