@@ -10,6 +10,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import mezz.jei.api.gui.builder.IIngredientAcceptor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -17,6 +18,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 final class MmceJeiUtil {
@@ -69,6 +71,33 @@ final class MmceJeiUtil {
             }
         }
         return stacks.stream().distinct().toList();
+    }
+
+    static boolean hasItemIngredient(MmceParsedRequirement requirement) {
+        return requirement instanceof MmceItemRequirement
+                || requirement instanceof MmceIngredientArrayRequirement arrayRequirement && !arrayRequirement.candidates().isEmpty();
+    }
+
+    static void addItemIngredients(IIngredientAcceptor<?> acceptor, MmceRecipeRequirement requirement) {
+        requirement.parsed().ifPresent(parsed -> addItemIngredients(acceptor, parsed));
+    }
+
+    private static void addItemIngredients(IIngredientAcceptor<?> acceptor, MmceParsedRequirement requirement) {
+        if (requirement instanceof MmceItemRequirement itemRequirement) {
+            addItemRequirement(acceptor, itemRequirement);
+        } else if (requirement instanceof MmceIngredientArrayRequirement arrayRequirement) {
+            for (MmceItemRequirement candidate : arrayRequirement.candidates()) {
+                addItemRequirement(acceptor, candidate);
+            }
+        }
+    }
+
+    private static void addItemRequirement(IIngredientAcceptor<?> acceptor, MmceItemRequirement requirement) {
+        requirement.itemTag().ifPresent(tag -> acceptor.addIngredients(Ingredient.of(tag)));
+        List<ItemStack> stacks = itemStacks(requirement);
+        if (!stacks.isEmpty()) {
+            acceptor.addItemStacks(stacks);
+        }
     }
 
     static List<FluidStack> fluidStacks(MmceRecipeRequirement requirement) {

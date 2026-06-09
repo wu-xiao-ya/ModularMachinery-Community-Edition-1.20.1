@@ -134,7 +134,7 @@ final class MmceJeiMachineRecipeCategory implements IRecipeCategory<MmceJeiMachi
                     slot.addFluidStack(fluid.fluid(), fluid.amount(), fluid.components());
                 }
             } else {
-                slot.addItemStacks(MmceJeiUtil.itemStacks(requirement));
+                MmceJeiUtil.addItemIngredients(slot, requirement);
             }
         }
     }
@@ -146,7 +146,7 @@ final class MmceJeiMachineRecipeCategory implements IRecipeCategory<MmceJeiMachi
         if (!fluids.isEmpty()) {
             ingredients.addIngredients(NeoForgeTypes.FLUID_STACK, fluids.stream().map(FluidStackBridge::stack).toList());
         } else {
-            ingredients.addItemStacks(MmceJeiUtil.itemStacks(requirement));
+            MmceJeiUtil.addItemIngredients(ingredients, requirement);
         }
     }
 
@@ -164,7 +164,7 @@ final class MmceJeiMachineRecipeCategory implements IRecipeCategory<MmceJeiMachi
     }
 
     private static boolean supportsVisibleSlot(MmceParsedRequirement requirement) {
-        return !MmceJeiUtil.itemStacks(requirement).isEmpty() || requirement instanceof MmceFluidRequirement;
+        return MmceJeiUtil.hasItemIngredient(requirement) || requirement instanceof MmceFluidRequirement;
     }
 
     private static List<FluidStackBridge> fluidStacks(MmceRecipeRequirement requirement) {

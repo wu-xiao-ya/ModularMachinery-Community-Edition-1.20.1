@@ -232,6 +232,7 @@ public final class MmceRecipeExecutor {
         if (!supportCheck.ok()) {
             postRecipeEvent(failureEvent(controller, run, machineId, recipe, modifiers, parallelism,
                     supportCheck.status(), supportCheck.detail(), true));
+            runFailureCommands(controller, recipe, run);
             run.clearActiveRecipe();
             run.setWorking(false);
             run.setRecipeStatus(supportCheck.status(), supportCheck.detail());
@@ -700,9 +701,6 @@ public final class MmceRecipeExecutor {
                     return TickCheck.failure(MmceRecipeStatus.OUTPUT_BLOCKED, recipe.id() + " gas/t output");
                 }
             } else if (shouldTriggerInput(requirement, tick)) {
-                if (!rollChance(controller, run, machineId, recipe, requirement, random, parallelism, modifiers)) {
-                    continue;
-                }
                 if (requirement instanceof MmceItemRequirement itemRequirement) {
                     int amount = amountFor(itemRequirement, itemRequirement.amount(), parallelism, modifiers);
                     if (consumeItem(controller, components.itemInputs(selected.selectorTag()), itemRequirement, amount) < amount) {
@@ -931,10 +929,14 @@ public final class MmceRecipeExecutor {
     }
 
     private static List<SelectedRequirement> selectedRequirements(MmceRecipeDefinition recipe) {
-        return recipe.requirements().stream()
-                .filter(requirement -> requirement.parsed().isPresent())
-                .map(requirement -> new SelectedRequirement(requirement.parsed().get(), requirement.selectorTag()))
-                .toList();
+        List<SelectedRequirement> selected = new ArrayList<>();
+        for (int index = 0; index < recipe.requirements().size(); index++) {
+            MmceRecipeRequirement requirement = recipe.requirements().get(index);
+            int requirementIndex = index;
+            requirement.parsed().ifPresent(parsed ->
+                    selected.add(new SelectedRequirement(requirementIndex, parsed, requirement.selectorTag())));
+        }
+        return selected;
     }
 
     private static TickChanceSelection selectPerTickChance(MachineControllerBlockEntity controller, RecipeRun run,
@@ -1079,7 +1081,7 @@ public final class MmceRecipeExecutor {
         return false;
     }
 
-    private record SelectedRequirement(MmceParsedRequirement parsed, Optional<String> selectorTag) {
+    private record SelectedRequirement(int index, MmceParsedRequirement parsed, Optional<String> selectorTag) {
     }
 
     private record TickChanceSelection(Map<SelectedRequirement, Boolean> decisions) {

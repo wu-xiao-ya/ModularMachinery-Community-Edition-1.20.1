@@ -1,22 +1,14 @@
 package hellfirepvp.modularmachinery.port.integration;
 
-import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import com.google.gson.JsonObject;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
-import org.openzen.zencode.java.ZenCodeType;
 
-@ZenRegister
-@ZenCodeType.Name("mods.modularmachinery.RecipeModifier")
 public final class MmceRecipeModifier {
-    @ZenCodeType.Field("IO_INPUT")
     public static final String IO_INPUT = "input";
-    @ZenCodeType.Field("IO_OUTPUT")
     public static final String IO_OUTPUT = "output";
-    @ZenCodeType.Field("OPERATION_ADD")
     public static final int OPERATION_ADD = 0;
-    @ZenCodeType.Field("OPERATION_MULTIPLY")
     public static final int OPERATION_MULTIPLY = 1;
 
     private final ResourceLocation target;
@@ -33,12 +25,10 @@ public final class MmceRecipeModifier {
         this.affectsChance = affectsChance;
     }
 
-    @ZenCodeType.Method
     public static MmceRecipeModifier create(String target, String ioTarget, double modifier, int operation) {
         return create(target, ioTarget, modifier, operation, false);
     }
 
-    @ZenCodeType.Method
     public static MmceRecipeModifier create(String target, String ioTarget, double modifier, int operation, boolean affectsChance) {
         return new MmceRecipeModifier(target, ioTarget, modifier, operation, affectsChance);
     }
@@ -68,17 +58,14 @@ public final class MmceRecipeModifier {
         return tag;
     }
 
-    @ZenCodeType.Method
     public String getTarget() {
         return target.toString();
     }
 
-    @ZenCodeType.Method
     public String getIOTarget() {
         return ioTarget;
     }
 
-    @ZenCodeType.Method
     public float getModifier() {
         return (float) modifier;
     }
@@ -87,22 +74,18 @@ public final class MmceRecipeModifier {
         return modifier;
     }
 
-    @ZenCodeType.Method
     public boolean affectsChance() {
         return affectsChance;
     }
 
-    @ZenCodeType.Method
     public int getOperation() {
         return operation;
     }
 
-    @ZenCodeType.Method
     public MmceRecipeModifier multiply(float value) {
         return new MmceRecipeModifier(target.toString(), ioTarget, modifier * value, operation, affectsChance);
     }
 
-    @ZenCodeType.Method
     public MmceRecipeModifier add(float value) {
         return new MmceRecipeModifier(target.toString(), ioTarget, modifier + value, operation, affectsChance);
     }
