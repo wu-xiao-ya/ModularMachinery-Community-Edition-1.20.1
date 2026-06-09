@@ -1,6 +1,5 @@
 package hellfirepvp.modularmachinery.port.blockentity;
 
-import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import com.google.gson.JsonObject;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
 import hellfirepvp.modularmachinery.port.block.ControllerBlock;
@@ -43,10 +42,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import org.openzen.zencode.java.ZenCodeType;
 
-@ZenRegister
-@ZenCodeType.Name("mods.modularmachinery.MachineController")
 public class MachineControllerBlockEntity extends BaseMachineBlockEntity implements Container {
     public static final int BLUEPRINT_SLOT = 0;
 
@@ -143,19 +139,16 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity impleme
         return dynamicPatternMatches;
     }
 
-    @ZenCodeType.Method
     public String[] getDynamicPatternNames() {
         return dynamicPatternMatches.stream()
                 .map(MmceStructureMatcher.DynamicPatternMatch::name)
                 .toArray(String[]::new);
     }
 
-    @ZenCodeType.Method
     public int getDynamicPatternSize(String patternName) {
         return findDynamicPattern(patternName).map(MmceStructureMatcher.DynamicPatternMatch::size).orElse(0);
     }
 
-    @ZenCodeType.Method
     public String getDynamicPatternFacing(String patternName) {
         return findDynamicPattern(patternName)
                 .map(match -> match.facing().getSerializedName())
@@ -174,74 +167,61 @@ public class MachineControllerBlockEntity extends BaseMachineBlockEntity impleme
         return List.copyOf(modifiers);
     }
 
-    @ZenCodeType.Method
     public void addModifier(String key, MmceRecipeModifier modifier) {
         temporaryModifiers.put(normalizeModifierKey(key), runtimeModifier(modifier));
         markForSync();
     }
 
-    @ZenCodeType.Method
     public void removeModifier(String key) {
         if (temporaryModifiers.remove(normalizeModifierKey(key)) != null) {
             markForSync();
         }
     }
 
-    @ZenCodeType.Method
     public boolean hasModifier(String key) {
         String normalizedKey = normalizeModifierKey(key);
         return temporaryModifiers.containsKey(normalizedKey) || permanentModifiers.containsKey(normalizedKey);
     }
 
-    @ZenCodeType.Method
     public boolean hasTemporaryModifier(String key) {
         return temporaryModifiers.containsKey(normalizeModifierKey(key));
     }
 
-    @ZenCodeType.Method
     public void addPermanentModifier(String key, MmceRecipeModifier modifier) {
         permanentModifiers.put(normalizeModifierKey(key), runtimeModifier(modifier));
         markForSync();
     }
 
-    @ZenCodeType.Method
     public void removePermanentModifier(String key) {
         if (permanentModifiers.remove(normalizeModifierKey(key)) != null) {
             markForSync();
         }
     }
 
-    @ZenCodeType.Method
     public boolean hasPermanentModifier(String key) {
         return permanentModifiers.containsKey(normalizeModifierKey(key));
     }
 
-    @ZenCodeType.Method
     public boolean hasMachineUpgrade(String upgradeName) {
         return MmceMachineUpgradeRegistry.hasInstalledUpgrade(this, upgradeName);
     }
 
-    @ZenCodeType.Method
     public MmceMachineUpgrade getMachineUpgrade(String upgradeName) {
         return MmceMachineUpgradeRegistry.installedUpgrade(this, upgradeName).orElse(null);
     }
 
-    @ZenCodeType.Method
     public MmceMachineUpgrade findMachineUpgrade(String upgradeName) {
         return getMachineUpgrade(upgradeName);
     }
 
-    @ZenCodeType.Method
     public MmceMachineUpgrade getMachineUpgradeOrNull(String upgradeName) {
         return getMachineUpgrade(upgradeName);
     }
 
-    @ZenCodeType.Method
     public MmceMachineUpgrade[] getFoundUpgrades() {
         return MmceMachineUpgradeRegistry.installedUpgrades(this).toArray(MmceMachineUpgrade[]::new);
     }
 
-    @ZenCodeType.Method
     public MmceMachineUpgrade[] getMachineUpgrades() {
         return getFoundUpgrades();
     }

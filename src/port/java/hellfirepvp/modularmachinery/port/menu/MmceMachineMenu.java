@@ -17,6 +17,7 @@ import hellfirepvp.modularmachinery.port.event.MmceEventRegistry;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeRegistry;
 import hellfirepvp.modularmachinery.port.machine.MmceStructureMatcher;
+import hellfirepvp.modularmachinery.port.network.MmceEnergyHatchDataPayload;
 import hellfirepvp.modularmachinery.port.network.MmceFactoryRunsPayload;
 import hellfirepvp.modularmachinery.port.network.MmceFluidHatchDataPayload;
 import hellfirepvp.modularmachinery.port.network.MmceSmartInterfaceDataPayload;
@@ -25,6 +26,7 @@ import hellfirepvp.modularmachinery.port.registry.MmceMenus;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -93,6 +95,15 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     private int factoryMaxThreads;
     private int factoryTotalParallelism;
     private String lastFactorySignature = "";
+    private boolean clientEnergyHatchDataReceived;
+    private boolean clientEnergyInput;
+    private long clientEnergyStored;
+    private long clientEnergyCapacity;
+    private long clientEnergyTransferLimit;
+    private String lastEnergyHatchSignature = "";
+    private ResourceLocation clientFluidId;
+    private int clientFluidAmount;
+    private int clientFluidCapacity = 1;
     private ResourceLocation clientChemicalId;
     private int clientChemicalAmount;
     private boolean clientFluidHatchDataReceived;
@@ -230,27 +241,71 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     }
 
     public long energyStored() {
+        if (!clientSide && blockEntity instanceof EnergyHatchBlockEntity hatch) {
+            return hatch.getEnergy();
+        }
+        if (clientEnergyHatchDataReceived) {
+            return clientEnergyStored;
+        }
         return unsignedLong(DATA_B, DATA_C);
     }
 
     public long energyCapacity() {
+        if (!clientSide && blockEntity instanceof EnergyHatchBlockEntity hatch) {
+            return hatch.getCapacity();
+        }
+        if (clientEnergyHatchDataReceived) {
+            return Math.max(1L, clientEnergyCapacity);
+        }
         return unsignedLong(DATA_D, DATA_E);
     }
 
     public long energyTransferLimit() {
+        if (!clientSide && blockEntity instanceof EnergyHatchBlockEntity hatch) {
+            return hatch.getTransferLimit();
+        }
+        if (clientEnergyHatchDataReceived) {
+            return clientEnergyTransferLimit;
+        }
         return unsignedLong(DATA_F, DATA_G);
     }
 
     public boolean energyInput() {
+        if (!clientSide && blockEntity instanceof EnergyHatchBlockEntity hatch) {
+            return hatch.isInput();
+        }
+        if (clientEnergyHatchDataReceived) {
+            return clientEnergyInput;
+        }
         return data(DATA_A) == 1;
     }
 
     public int fluidStored() {
+        if (!clientSide && blockEntity instanceof FluidHatchBlockEntity hatch) {
+            return hatch.getStoredFluid().getAmount();
+        }
+        if (clientFluidHatchDataReceived) {
+            return clientFluidAmount;
+        }
         return data(DATA_C);
     }
 
     public int fluidCapacity() {
+        if (!clientSide && blockEntity instanceof FluidHatchBlockEntity hatch) {
+            return Math.max(1, hatch.getCapacity());
+        }
+        if (clientFluidHatchDataReceived) {
+            return Math.max(1, clientFluidCapacity);
+        }
         return Math.max(1, data(DATA_D));
+    }
+
+    public ResourceLocation storedFluidId() {
+        if (!clientSide && blockEntity instanceof FluidHatchBlockEntity hatch) {
+            FluidStack fluid = hatch.getStoredFluid();
+            return fluid.isEmpty() ? null : BuiltInRegistries.FLUID.getKey(fluid.getFluid());
+        }
+        return clientFluidHatchDataReceived ? clientFluidId : null;
     }
 
     public boolean hasStoredChemical() {
@@ -339,7 +394,18 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         smartInterfaceBindings = payload.bindings();
     }
 
+    public void updateEnergyHatchData(MmceEnergyHatchDataPayload payload) {
+        clientEnergyInput = payload.input();
+        clientEnergyStored = payload.stored();
+        clientEnergyCapacity = payload.capacity();
+        clientEnergyTransferLimit = payload.transferLimit();
+        clientEnergyHatchDataReceived = true;
+    }
+
     public void updateFluidHatchData(MmceFluidHatchDataPayload payload) {
+        clientFluidId = payload.fluidId();
+        clientFluidAmount = payload.fluidAmount();
+        clientFluidCapacity = payload.capacity();
         clientChemicalId = payload.chemicalId();
         clientChemicalAmount = payload.chemicalAmount();
         clientFluidHatchDataReceived = true;
@@ -417,6 +483,7 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     public void broadcastChanges() {
         super.broadcastChanges();
         sendFactoryRunsIfChanged();
+        sendEnergyHatchDataIfChanged();
         sendFluidHatchDataIfChanged();
         sendSmartInterfaceDataIfChanged();
     }
@@ -424,6 +491,9 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     @Override
     public void sendAllDataToRemote() {
         super.sendAllDataToRemote();
+        sendFactoryRuns(true);
+        sendEnergyHatchData(true);
+        sendFluidHatchData(true);
         sendSmartInterfaceDataIfChanged();
     }
 
@@ -731,13 +801,17 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     }
 
     private void sendFactoryRunsIfChanged() {
+        sendFactoryRuns(false);
+    }
+
+    private void sendFactoryRuns(boolean force) {
         if (clientSide || !(blockEntity instanceof FactoryControllerBlockEntity factory)
                 || !(playerInventory.player instanceof ServerPlayer serverPlayer)) {
             return;
         }
         List<FactoryControllerBlockEntity.FactoryRunView> runs = factory.factoryRunViews();
         String signature = factorySignature(factory, runs);
-        if (signature.equals(lastFactorySignature)) {
+        if (!force && signature.equals(lastFactorySignature)) {
             return;
         }
         lastFactorySignature = signature;
@@ -753,23 +827,61 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         ));
     }
 
+    private void sendEnergyHatchDataIfChanged() {
+        sendEnergyHatchData(false);
+    }
+
+    private void sendEnergyHatchData(boolean force) {
+        if (clientSide || !(blockEntity instanceof EnergyHatchBlockEntity hatch)
+                || !(playerInventory.player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        String signature = hatch.isInput()
+                + "|" + hatch.getEnergy()
+                + "|" + hatch.getCapacity()
+                + "|" + hatch.getTransferLimit();
+        if (!force && signature.equals(lastEnergyHatchSignature)) {
+            return;
+        }
+        lastEnergyHatchSignature = signature;
+        PacketDistributor.sendToPlayer(serverPlayer, new MmceEnergyHatchDataPayload(
+                blockPos,
+                containerId,
+                hatch.isInput(),
+                hatch.getEnergy(),
+                hatch.getCapacity(),
+                hatch.getTransferLimit()
+        ));
+    }
+
     private void sendFluidHatchDataIfChanged() {
+        sendFluidHatchData(false);
+    }
+
+    private void sendFluidHatchData(boolean force) {
         if (clientSide || !(blockEntity instanceof FluidHatchBlockEntity hatch)
                 || !(playerInventory.player instanceof ServerPlayer serverPlayer)) {
             return;
         }
+        FluidStack fluid = hatch.getStoredFluid();
+        ResourceLocation fluidId = fluid.isEmpty() ? null : BuiltInRegistries.FLUID.getKey(fluid.getFluid());
+        int fluidAmount = fluid.getAmount();
         ResourceLocation chemicalId = hatch.hasStoredChemical() ? hatch.getStoredChemicalId() : null;
         int chemicalAmount = hatch.getStoredChemicalAmount();
-        String signature = (chemicalId == null ? "empty" : chemicalId.toString())
+        String signature = (fluidId == null ? "empty" : fluidId.toString())
+                + '|' + fluidAmount
+                + '|' + (chemicalId == null ? "empty" : chemicalId.toString())
                 + '|' + chemicalAmount
                 + '|' + hatch.getCapacity();
-        if (signature.equals(lastFluidHatchSignature)) {
+        if (!force && signature.equals(lastFluidHatchSignature)) {
             return;
         }
         lastFluidHatchSignature = signature;
         PacketDistributor.sendToPlayer(serverPlayer, new MmceFluidHatchDataPayload(
                 blockPos,
                 containerId,
+                fluidId,
+                fluidAmount,
                 chemicalId,
                 chemicalAmount,
                 hatch.getCapacity()

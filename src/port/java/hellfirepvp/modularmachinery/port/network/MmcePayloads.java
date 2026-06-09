@@ -25,6 +25,11 @@ public final class MmcePayloads {
                 MmceGroupInputConfigPayload::handle
         );
         registrar.playToClient(
+                MmceEnergyHatchDataPayload.TYPE,
+                MmceEnergyHatchDataPayload.STREAM_CODEC,
+                MmceEnergyHatchDataPayload::handle
+        );
+        registrar.playToClient(
                 MmceFluidHatchDataPayload.TYPE,
                 MmceFluidHatchDataPayload.STREAM_CODEC,
                 MmceFluidHatchDataPayload::handle

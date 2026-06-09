@@ -1,15 +1,11 @@
 package hellfirepvp.modularmachinery.port.event;
 
-import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import hellfirepvp.modularmachinery.port.blockentity.MachineControllerBlockEntity;
 import hellfirepvp.modularmachinery.port.data.MmceParsedRequirement;
 import hellfirepvp.modularmachinery.port.recipe.MmceRecipeStatus;
 import java.util.Locale;
 import net.minecraft.resources.ResourceLocation;
-import org.openzen.zencode.java.ZenCodeType;
 
-@ZenRegister
-@ZenCodeType.Name("mods.modularmachinery.ResultChanceCreateEvent")
 public final class MmceResultChanceCreateEvent extends MmceRecipeEvent {
     private final String requirementType;
     private final String ioType;
@@ -34,34 +30,22 @@ public final class MmceResultChanceCreateEvent extends MmceRecipeEvent {
         this.ioType = requirement == null ? "" : requirement.ioType().name().toLowerCase(Locale.ROOT);
         this.chance = clamp(chance);
     }
-
-    @ZenCodeType.Getter("requirementType")
     public String getRequirementType() {
         return requirementType;
     }
-
-    @ZenCodeType.Getter("ioType")
     public String getIoType() {
         return ioType;
     }
-
-    @ZenCodeType.Getter("chance")
     public float getChance() {
         return chance;
     }
-
-    @ZenCodeType.Setter("chance")
     public void setChance(float chance) {
         this.chance = clamp(chance);
     }
-
-    @ZenCodeType.Method
     public MmceResultChanceCreateEvent chance(float chance) {
         setChance(chance);
         return this;
     }
-
-    @ZenCodeType.Method
     public MmceResultChanceCreateEvent setResultChance(float chance) {
         return chance(chance);
     }

@@ -1,12 +1,8 @@
 package hellfirepvp.modularmachinery.port.event;
 
-import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import hellfirepvp.modularmachinery.port.blockentity.MachineControllerBlockEntity;
 import net.minecraft.resources.ResourceLocation;
-import org.openzen.zencode.java.ZenCodeType;
 
-@ZenRegister
-@ZenCodeType.Name("mods.modularmachinery.FactoryRecipeStartEvent")
 public final class MmceFactoryRecipeStartEvent extends MmceRecipeEvent {
     public MmceFactoryRecipeStartEvent(
             MachineControllerBlockEntity controller,

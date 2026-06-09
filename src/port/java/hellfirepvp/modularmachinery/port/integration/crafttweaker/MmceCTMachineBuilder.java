@@ -10,7 +10,6 @@ import com.google.gson.JsonObject;
 import hellfirepvp.modularmachinery.port.data.MmceScriptDataRegistry;
 import hellfirepvp.modularmachinery.port.event.MmceEventPhase;
 import hellfirepvp.modularmachinery.port.event.MmceEventRegistry;
-import hellfirepvp.modularmachinery.port.event.MmceMachineEventHandler;
 import hellfirepvp.modularmachinery.port.event.MmceMachineEventType;
 import hellfirepvp.modularmachinery.port.integration.MmceBlockChecker;
 import hellfirepvp.modularmachinery.port.integration.MmceBlockCheckerRegistry;
@@ -613,47 +612,47 @@ public final class MmceCTMachineBuilder {
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineBuilder addStructureFormedHandler(MmceMachineEventHandler handler) {
+    public MmceCTMachineBuilder addStructureFormedHandler(MmceCTMachineEventHandler handler) {
         return machineHandler(MmceMachineEventType.STRUCTURE_FORMED, null, handler);
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineBuilder addStructureUpdateHandler(MmceMachineEventHandler handler) {
+    public MmceCTMachineBuilder addStructureUpdateHandler(MmceCTMachineEventHandler handler) {
         return machineHandler(MmceMachineEventType.STRUCTURE_UPDATE, null, handler);
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineBuilder addMachinePreTickHandler(MmceMachineEventHandler handler) {
+    public MmceCTMachineBuilder addMachinePreTickHandler(MmceCTMachineEventHandler handler) {
         return machineHandler(MmceMachineEventType.TICK, MmceEventPhase.START, handler);
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineBuilder addMachinePostTickHandler(MmceMachineEventHandler handler) {
+    public MmceCTMachineBuilder addMachinePostTickHandler(MmceCTMachineEventHandler handler) {
         return machineHandler(MmceMachineEventType.TICK, MmceEventPhase.END, handler);
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineBuilder addTickHandler(MmceMachineEventHandler handler) {
+    public MmceCTMachineBuilder addTickHandler(MmceCTMachineEventHandler handler) {
         return addMachinePostTickHandler(handler);
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineBuilder addSmartInterfaceUpdateHandler(MmceMachineEventHandler handler) {
+    public MmceCTMachineBuilder addSmartInterfaceUpdateHandler(MmceCTMachineEventHandler handler) {
         return machineHandler(MmceMachineEventType.SMART_INTERFACE_UPDATE, null, handler);
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineBuilder addControllerButtonClickHandler(MmceMachineEventHandler handler) {
+    public MmceCTMachineBuilder addControllerButtonClickHandler(MmceCTMachineEventHandler handler) {
         return machineHandler(MmceMachineEventType.CONTROLLER_BUTTON_CLICK, null, handler);
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineBuilder addGUIRenderHandler(MmceMachineEventHandler handler) {
+    public MmceCTMachineBuilder addGUIRenderHandler(MmceCTMachineEventHandler handler) {
         return machineHandler(MmceMachineEventType.CONTROLLER_GUI_RENDER, null, handler);
     }
 
     @ZenCodeType.Method
-    public MmceCTMachineBuilder addControllerGUIRenderHandler(MmceMachineEventHandler handler) {
+    public MmceCTMachineBuilder addControllerGUIRenderHandler(MmceCTMachineEventHandler handler) {
         return addGUIRenderHandler(handler);
     }
 
@@ -675,11 +674,11 @@ public final class MmceCTMachineBuilder {
                 : ResourceLocation.fromNamespaceAndPath(hellfirepvp.modularmachinery.port.ModularMachineryNeoForge.MODID, id);
     }
 
-    private MmceCTMachineBuilder machineHandler(MmceMachineEventType type, MmceEventPhase phase, MmceMachineEventHandler handler) {
+    private MmceCTMachineBuilder machineHandler(MmceMachineEventType type, MmceEventPhase phase, MmceCTMachineEventHandler handler) {
         if (handler != null) {
             MmceEventRegistry.registerMachine(registryName, type, event -> {
                 if (phase == null || event.getPhase() == phase) {
-                    handler.handle(event);
+                    handler.handle(MmceCTMachineEvent.of(event));
                 }
             });
         }

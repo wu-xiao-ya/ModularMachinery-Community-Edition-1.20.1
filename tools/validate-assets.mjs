@@ -87,6 +87,7 @@ const knownMinecraftParents = new Set([
 ]);
 
 const problems = [];
+const warnings = [];
 const visitedModels = new Set();
 const modelCache = new Map();
 const checkedPngs = new Set();
@@ -485,6 +486,84 @@ function checkAllNamespaceModels() {
     }
 }
 
+function checkLegacyPluralTextureDirectories() {
+    const legacyDirs = [
+        path.join(modAssets, "textures", "blocks"),
+        path.join(modAssets, "textures", "items")
+    ];
+    for (const directory of legacyDirs) {
+        if (exists(directory) && fs.statSync(directory).isDirectory()) {
+            warnings.push(`Legacy plural texture directory found: ${relative(directory)}`);
+        }
+    }
+}
+
+function checkUnusedLegacyAliases(blockIds, itemIds) {
+    const blockIdSet = new Set(blockIds);
+    const itemIdSet = new Set(itemIds);
+    const blockstatesDir = path.join(modAssets, "blockstates");
+    const itemModelsDir = path.join(modAssets, "models", "item");
+
+    if (exists(blockstatesDir)) {
+        for (const file of listFiles(blockstatesDir, ".json")) {
+            const id = path.basename(file, ".json");
+            if (blockIdSet.has(id)) {
+                continue;
+            }
+            const json = readJson(file);
+            if (!json) {
+                continue;
+            }
+            const currentRefs = referencedBlockstateModels(json)
+                    .filter(ref => blockIdSet.has(lastResourcePathPart(ref)));
+            if (currentRefs.length > 0) {
+                warnings.push(`Unused legacy blockstate alias found: ${relative(file)} -> ${[...new Set(currentRefs)].join(", ")}`);
+            }
+        }
+    }
+
+    if (exists(itemModelsDir)) {
+        for (const file of listFiles(itemModelsDir, ".json")) {
+            const id = path.basename(file, ".json");
+            if (itemIdSet.has(id)) {
+                continue;
+            }
+            const json = readJson(file);
+            if (!json) {
+                continue;
+            }
+            const currentRefs = referencedItemModels(json)
+                    .filter(ref => itemIdSet.has(lastResourcePathPart(ref)));
+            if (currentRefs.length > 0) {
+                warnings.push(`Unused legacy item model alias found: ${relative(file)} -> ${[...new Set(currentRefs)].join(", ")}`);
+            }
+        }
+    }
+}
+
+function referencedItemModels(json) {
+    const refs = [];
+    if (json.parent && !json.parent.startsWith("minecraft:")) {
+        refs.push(json.parent);
+    }
+    for (const textureRef of Object.values(json.textures ?? {})) {
+        if (typeof textureRef === "string" && !textureRef.startsWith("#")) {
+            refs.push(textureRef);
+        }
+    }
+    for (const override of json.overrides ?? []) {
+        if (override.model) {
+            refs.push(override.model);
+        }
+    }
+    return refs;
+}
+
+function lastResourcePathPart(ref) {
+    const [, id] = splitResource(ref);
+    return id.split("/").at(-1);
+}
+
 function listFiles(directory, extension) {
     const files = [];
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -680,12 +759,18 @@ checkStatefulItemOverrides(itemIds);
 checkAllNamespaceModels();
 checkJavaTextureReferences();
 checkDefaultDataReferences(blockIds, itemIds);
+checkLegacyPluralTextureDirectories();
+checkUnusedLegacyAliases(blockIds, itemIds);
 
 if (problems.length > 0) {
     for (const problem of problems) {
         console.error(problem);
     }
     process.exit(1);
+}
+
+for (const warning of warnings) {
+    console.warn(`Warning: ${warning}`);
 }
 
 console.log(`Asset validation passed (${visitedModels.size} models, ${checkedPngs.size} PNG checks).`);

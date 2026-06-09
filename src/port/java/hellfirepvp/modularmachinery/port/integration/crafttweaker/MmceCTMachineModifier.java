@@ -8,7 +8,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import hellfirepvp.modularmachinery.port.event.MmceEventPhase;
 import hellfirepvp.modularmachinery.port.event.MmceEventRegistry;
-import hellfirepvp.modularmachinery.port.event.MmceMachineEventHandler;
 import hellfirepvp.modularmachinery.port.event.MmceMachineEventType;
 import hellfirepvp.modularmachinery.port.integration.MmceBlockChecker;
 import hellfirepvp.modularmachinery.port.integration.MmceBlockCheckerRegistry;
@@ -233,47 +232,47 @@ public final class MmceCTMachineModifier {
     }
 
     @ZenCodeType.Method
-    public static void addStructureFormedHandler(String machineName, MmceMachineEventHandler handler) {
+    public static void addStructureFormedHandler(String machineName, MmceCTMachineEventHandler handler) {
         registerMachineHandler(machineName, MmceMachineEventType.STRUCTURE_FORMED, null, handler);
     }
 
     @ZenCodeType.Method
-    public static void addStructureUpdateHandler(String machineName, MmceMachineEventHandler handler) {
+    public static void addStructureUpdateHandler(String machineName, MmceCTMachineEventHandler handler) {
         registerMachineHandler(machineName, MmceMachineEventType.STRUCTURE_UPDATE, null, handler);
     }
 
     @ZenCodeType.Method
-    public static void addMachinePreTickHandler(String machineName, MmceMachineEventHandler handler) {
+    public static void addMachinePreTickHandler(String machineName, MmceCTMachineEventHandler handler) {
         registerMachineHandler(machineName, MmceMachineEventType.TICK, MmceEventPhase.START, handler);
     }
 
     @ZenCodeType.Method
-    public static void addMachinePostTickHandler(String machineName, MmceMachineEventHandler handler) {
+    public static void addMachinePostTickHandler(String machineName, MmceCTMachineEventHandler handler) {
         registerMachineHandler(machineName, MmceMachineEventType.TICK, MmceEventPhase.END, handler);
     }
 
     @ZenCodeType.Method
-    public static void addTickHandler(String machineName, MmceMachineEventHandler handler) {
+    public static void addTickHandler(String machineName, MmceCTMachineEventHandler handler) {
         addMachinePostTickHandler(machineName, handler);
     }
 
     @ZenCodeType.Method
-    public static void addSmartInterfaceUpdateHandler(String machineName, MmceMachineEventHandler handler) {
+    public static void addSmartInterfaceUpdateHandler(String machineName, MmceCTMachineEventHandler handler) {
         registerMachineHandler(machineName, MmceMachineEventType.SMART_INTERFACE_UPDATE, null, handler);
     }
 
     @ZenCodeType.Method
-    public static void addControllerButtonClickHandler(String machineName, MmceMachineEventHandler handler) {
+    public static void addControllerButtonClickHandler(String machineName, MmceCTMachineEventHandler handler) {
         registerMachineHandler(machineName, MmceMachineEventType.CONTROLLER_BUTTON_CLICK, null, handler);
     }
 
     @ZenCodeType.Method
-    public static void addGUIRenderHandler(String machineName, MmceMachineEventHandler handler) {
+    public static void addGUIRenderHandler(String machineName, MmceCTMachineEventHandler handler) {
         registerMachineHandler(machineName, MmceMachineEventType.CONTROLLER_GUI_RENDER, null, handler);
     }
 
     @ZenCodeType.Method
-    public static void addControllerGUIRenderHandler(String machineName, MmceMachineEventHandler handler) {
+    public static void addControllerGUIRenderHandler(String machineName, MmceCTMachineEventHandler handler) {
         addGUIRenderHandler(machineName, handler);
     }
 
@@ -290,13 +289,13 @@ public final class MmceCTMachineModifier {
     }
 
     private static void registerMachineHandler(String machineName, MmceMachineEventType type, MmceEventPhase phase,
-                                               MmceMachineEventHandler handler) {
+                                               MmceCTMachineEventHandler handler) {
         if (handler == null) {
             return;
         }
         MmceEventRegistry.registerMachine(MmceMachineDefinitionPatcher.machineId(machineName), type, event -> {
             if (phase == null || event.getPhase() == phase) {
-                handler.handle(event);
+                handler.handle(MmceCTMachineEvent.of(event));
             }
         });
     }

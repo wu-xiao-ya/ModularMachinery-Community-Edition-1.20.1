@@ -7,7 +7,6 @@ import com.blamejared.crafttweaker.api.fluid.IFluidStack;
 import com.blamejared.crafttweaker.api.ingredient.IIngredient;
 import com.blamejared.crafttweaker.api.ingredient.IIngredientWithAmount;
 import com.blamejared.crafttweaker.api.item.IItemStack;
-import hellfirepvp.modularmachinery.port.event.MmceRecipeEventHandler;
 import hellfirepvp.modularmachinery.port.integration.MmceIngredientArrayPrimer;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeAdapterBuilder;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifier;
@@ -183,92 +182,92 @@ public final class MmceCTRecipeAdapterBuilder {
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addPreCheckHandler(MmceRecipeEventHandler handler) {
-        builder.addPreCheckHandler(handler);
+    public MmceCTRecipeAdapterBuilder addPreCheckHandler(MmceCTRecipeEventHandler handler) {
+        builder.addPreCheckHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addPostCheckHandler(MmceRecipeEventHandler handler) {
-        builder.addPostCheckHandler(handler);
+    public MmceCTRecipeAdapterBuilder addPostCheckHandler(MmceCTRecipeEventHandler handler) {
+        builder.addPostCheckHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addCheckHandler(MmceRecipeEventHandler handler) {
-        builder.addCheckHandler(handler);
+    public MmceCTRecipeAdapterBuilder addCheckHandler(MmceCTRecipeEventHandler handler) {
+        builder.addCheckHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addStartHandler(MmceRecipeEventHandler handler) {
-        builder.addStartHandler(handler);
+    public MmceCTRecipeAdapterBuilder addStartHandler(MmceCTRecipeEventHandler handler) {
+        builder.addStartHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addPreTickHandler(MmceRecipeEventHandler handler) {
-        builder.addPreTickHandler(handler);
+    public MmceCTRecipeAdapterBuilder addPreTickHandler(MmceCTRecipeEventHandler handler) {
+        builder.addPreTickHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addPostTickHandler(MmceRecipeEventHandler handler) {
-        builder.addPostTickHandler(handler);
+    public MmceCTRecipeAdapterBuilder addPostTickHandler(MmceCTRecipeEventHandler handler) {
+        builder.addPostTickHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addTickHandler(MmceRecipeEventHandler handler) {
-        builder.addTickHandler(handler);
+    public MmceCTRecipeAdapterBuilder addTickHandler(MmceCTRecipeEventHandler handler) {
+        builder.addTickHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addFailureHandler(MmceRecipeEventHandler handler) {
-        builder.addFailureHandler(handler);
+    public MmceCTRecipeAdapterBuilder addFailureHandler(MmceCTRecipeEventHandler handler) {
+        builder.addFailureHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addFinishHandler(MmceRecipeEventHandler handler) {
-        builder.addFinishHandler(handler);
+    public MmceCTRecipeAdapterBuilder addFinishHandler(MmceCTRecipeEventHandler handler) {
+        builder.addFinishHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addResultChanceHandler(MmceRecipeEventHandler handler) {
-        builder.addResultChanceHandler(handler);
+    public MmceCTRecipeAdapterBuilder addResultChanceHandler(MmceCTRecipeEventHandler handler) {
+        builder.addResultChanceHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addFactoryStartHandler(MmceRecipeEventHandler handler) {
-        builder.addFactoryStartHandler(handler);
+    public MmceCTRecipeAdapterBuilder addFactoryStartHandler(MmceCTRecipeEventHandler handler) {
+        builder.addFactoryStartHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addFactoryPreTickHandler(MmceRecipeEventHandler handler) {
-        builder.addFactoryPreTickHandler(handler);
+    public MmceCTRecipeAdapterBuilder addFactoryPreTickHandler(MmceCTRecipeEventHandler handler) {
+        builder.addFactoryPreTickHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addFactoryPostTickHandler(MmceRecipeEventHandler handler) {
-        builder.addFactoryPostTickHandler(handler);
+    public MmceCTRecipeAdapterBuilder addFactoryPostTickHandler(MmceCTRecipeEventHandler handler) {
+        builder.addFactoryPostTickHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addFactoryFailureHandler(MmceRecipeEventHandler handler) {
-        builder.addFactoryFailureHandler(handler);
+    public MmceCTRecipeAdapterBuilder addFactoryFailureHandler(MmceCTRecipeEventHandler handler) {
+        builder.addFactoryFailureHandler(wrap(handler));
         return this;
     }
 
     @ZenCodeType.Method
-    public MmceCTRecipeAdapterBuilder addFactoryFinishHandler(MmceRecipeEventHandler handler) {
-        builder.addFactoryFinishHandler(handler);
+    public MmceCTRecipeAdapterBuilder addFactoryFinishHandler(MmceCTRecipeEventHandler handler) {
+        builder.addFactoryFinishHandler(wrap(handler));
         return this;
     }
 
@@ -1146,5 +1145,13 @@ public final class MmceCTRecipeAdapterBuilder {
             }
         }
         return this;
+    }
+
+    private static hellfirepvp.modularmachinery.port.event.MmceRecipeEventHandler wrap(MmceCTRecipeEventHandler handler) {
+        return event -> {
+            if (handler != null) {
+                handler.handle(MmceCTRecipeEvent.of(event));
+            }
+        };
     }
 }

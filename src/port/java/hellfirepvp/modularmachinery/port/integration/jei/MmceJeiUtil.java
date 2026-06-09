@@ -94,10 +94,26 @@ final class MmceJeiUtil {
 
     private static void addItemRequirement(IIngredientAcceptor<?> acceptor, MmceItemRequirement requirement) {
         requirement.itemTag().ifPresent(tag -> acceptor.addIngredients(Ingredient.of(tag)));
-        List<ItemStack> stacks = itemStacks(requirement);
+        List<ItemStack> stacks = supplementalItemStacks(requirement);
         if (!stacks.isEmpty()) {
             acceptor.addItemStacks(stacks);
         }
+    }
+
+    private static List<ItemStack> supplementalItemStacks(MmceItemRequirement requirement) {
+        List<ItemStack> stacks = new ArrayList<>();
+        ItemStack directStack = requirement.createStack(displayAmount(requirement));
+        if (!directStack.isEmpty()) {
+            stacks.add(directStack);
+        }
+        for (ResourceLocation fallbackId : requirement.fallbackItemIds()) {
+            Item item = BuiltInRegistries.ITEM.get(fallbackId);
+            ItemStack stack = itemStack(item, displayAmount(requirement));
+            if (!stack.isEmpty()) {
+                stacks.add(stack);
+            }
+        }
+        return stacks.stream().distinct().toList();
     }
 
     static List<FluidStack> fluidStacks(MmceRecipeRequirement requirement) {
