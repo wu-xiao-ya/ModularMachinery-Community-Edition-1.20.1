@@ -1,3 +1,6 @@
 {
-  "parent": "modularmachinery:item/machineprojector"
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "modularmachinery:item/machine_projector"
+  }
 }
