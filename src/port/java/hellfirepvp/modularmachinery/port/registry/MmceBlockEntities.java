@@ -22,7 +22,27 @@ public final class MmceBlockEntities {
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ColorableMachineBlockEntity>> COLORABLE_COMPONENT =
             BLOCK_ENTITIES.register("tilecolorablemachinecomponent",
-                    () -> BlockEntityType.Builder.of(ColorableMachineBlockEntity::new, MmceBlocks.BLOCK_CASING.get()).build(null));
+                    () -> BlockEntityType.Builder.of(
+                            ColorableMachineBlockEntity::new,
+                            MmceBlocks.BLOCK_CASING.get(),
+                            MmceBlocks.LIFE_ESSENCE_PROVIDER_INPUT.get(),
+                            MmceBlocks.LIFE_ESSENCE_PROVIDER_OUTPUT.get(),
+                            MmceBlocks.WILL_PROVIDER_INPUT.get(),
+                            MmceBlocks.WILL_PROVIDER_OUTPUT.get(),
+                            MmceBlocks.MANA_PROVIDER_INPUT.get(),
+                            MmceBlocks.MANA_PROVIDER_OUTPUT.get(),
+                            MmceBlocks.STARLIGHT_PROVIDER_INPUT.get(),
+                            MmceBlocks.STARLIGHT_PROVIDER_OUTPUT.get(),
+                            MmceBlocks.GRID_PROVIDER_INPUT.get(),
+                            MmceBlocks.GRID_PROVIDER_OUTPUT.get(),
+                            MmceBlocks.AURA_PROVIDER_INPUT.get(),
+                            MmceBlocks.AURA_PROVIDER_OUTPUT.get(),
+                            MmceBlocks.ASPECT_PROVIDER_INPUT.get(),
+                            MmceBlocks.ASPECT_PROVIDER_OUTPUT.get(),
+                            MmceBlocks.CONSTELLATION_PROVIDER.get(),
+                            MmceBlocks.RAINBOW_PROVIDER.get(),
+                            MmceBlocks.ME_PATTERN_PROVIDER.get()
+                    ).build(null));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MachineControllerBlockEntity>> MACHINE_CONTROLLER =
             BLOCK_ENTITIES.register("tilemachinecontroller",

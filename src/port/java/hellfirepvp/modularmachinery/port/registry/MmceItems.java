@@ -41,6 +41,23 @@ public final class MmceItems {
     public static final DeferredItem<StatefulBlockItem<?>> SMART_INTERFACE = statefulBlockItem(MmceBlocks.SMART_INTERFACE, SmartInterfaceBlock.TYPE);
     public static final DeferredItem<StatefulBlockItem<?>> PARALLEL_CONTROLLER = statefulBlockItem(MmceBlocks.PARALLEL_CONTROLLER, ParallelControllerBlock.TYPE);
     public static final DeferredItem<StatefulBlockItem<?>> UPGRADE_BUS = statefulBlockItem(MmceBlocks.UPGRADE_BUS, UpgradeBusBlock.TYPE);
+    public static final DeferredItem<BlockItem> LIFE_ESSENCE_PROVIDER_INPUT = blockItem(MmceBlocks.LIFE_ESSENCE_PROVIDER_INPUT);
+    public static final DeferredItem<BlockItem> LIFE_ESSENCE_PROVIDER_OUTPUT = blockItem(MmceBlocks.LIFE_ESSENCE_PROVIDER_OUTPUT);
+    public static final DeferredItem<BlockItem> WILL_PROVIDER_INPUT = blockItem(MmceBlocks.WILL_PROVIDER_INPUT);
+    public static final DeferredItem<BlockItem> WILL_PROVIDER_OUTPUT = blockItem(MmceBlocks.WILL_PROVIDER_OUTPUT);
+    public static final DeferredItem<BlockItem> MANA_PROVIDER_INPUT = blockItem(MmceBlocks.MANA_PROVIDER_INPUT);
+    public static final DeferredItem<BlockItem> MANA_PROVIDER_OUTPUT = blockItem(MmceBlocks.MANA_PROVIDER_OUTPUT);
+    public static final DeferredItem<BlockItem> STARLIGHT_PROVIDER_INPUT = blockItem(MmceBlocks.STARLIGHT_PROVIDER_INPUT);
+    public static final DeferredItem<BlockItem> STARLIGHT_PROVIDER_OUTPUT = blockItem(MmceBlocks.STARLIGHT_PROVIDER_OUTPUT);
+    public static final DeferredItem<BlockItem> GRID_PROVIDER_INPUT = blockItem(MmceBlocks.GRID_PROVIDER_INPUT);
+    public static final DeferredItem<BlockItem> GRID_PROVIDER_OUTPUT = blockItem(MmceBlocks.GRID_PROVIDER_OUTPUT);
+    public static final DeferredItem<BlockItem> AURA_PROVIDER_INPUT = blockItem(MmceBlocks.AURA_PROVIDER_INPUT);
+    public static final DeferredItem<BlockItem> AURA_PROVIDER_OUTPUT = blockItem(MmceBlocks.AURA_PROVIDER_OUTPUT);
+    public static final DeferredItem<BlockItem> ASPECT_PROVIDER_INPUT = blockItem(MmceBlocks.ASPECT_PROVIDER_INPUT);
+    public static final DeferredItem<BlockItem> ASPECT_PROVIDER_OUTPUT = blockItem(MmceBlocks.ASPECT_PROVIDER_OUTPUT);
+    public static final DeferredItem<BlockItem> CONSTELLATION_PROVIDER = blockItem(MmceBlocks.CONSTELLATION_PROVIDER);
+    public static final DeferredItem<BlockItem> RAINBOW_PROVIDER = blockItem(MmceBlocks.RAINBOW_PROVIDER);
+    public static final DeferredItem<BlockItem> ME_PATTERN_PROVIDER = blockItem(MmceBlocks.ME_PATTERN_PROVIDER);
 
     public static final DeferredItem<MmceBlueprintItem> BLUEPRINT = ITEMS.register("itemblueprint",
             () -> new MmceBlueprintItem(new Item.Properties().stacksTo(16)));
@@ -64,6 +81,23 @@ public final class MmceItems {
             SMART_INTERFACE,
             PARALLEL_CONTROLLER,
             UPGRADE_BUS,
+            LIFE_ESSENCE_PROVIDER_INPUT,
+            LIFE_ESSENCE_PROVIDER_OUTPUT,
+            WILL_PROVIDER_INPUT,
+            WILL_PROVIDER_OUTPUT,
+            MANA_PROVIDER_INPUT,
+            MANA_PROVIDER_OUTPUT,
+            STARLIGHT_PROVIDER_INPUT,
+            STARLIGHT_PROVIDER_OUTPUT,
+            GRID_PROVIDER_INPUT,
+            GRID_PROVIDER_OUTPUT,
+            AURA_PROVIDER_INPUT,
+            AURA_PROVIDER_OUTPUT,
+            ASPECT_PROVIDER_INPUT,
+            ASPECT_PROVIDER_OUTPUT,
+            CONSTELLATION_PROVIDER,
+            RAINBOW_PROVIDER,
+            ME_PATTERN_PROVIDER,
             BLUEPRINT,
             MODULARIUM,
             CONSTRUCT_TOOL,

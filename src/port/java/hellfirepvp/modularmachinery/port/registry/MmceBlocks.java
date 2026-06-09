@@ -6,6 +6,7 @@ import hellfirepvp.modularmachinery.port.block.EnergyHatchBlock;
 import hellfirepvp.modularmachinery.port.block.FluidHatchBlock;
 import hellfirepvp.modularmachinery.port.block.ItemBusBlock;
 import hellfirepvp.modularmachinery.port.block.ParallelControllerBlock;
+import hellfirepvp.modularmachinery.port.block.ProviderBlock;
 import hellfirepvp.modularmachinery.port.block.SmartInterfaceBlock;
 import hellfirepvp.modularmachinery.port.block.UpgradeBusBlock;
 import hellfirepvp.modularmachinery.port.blockentity.FactoryControllerBlockEntity;
@@ -46,6 +47,24 @@ public final class MmceBlocks {
     public static final DeferredBlock<UpgradeBusBlock> UPGRADE_BUS = BLOCKS.register("blockupgradebus",
             () -> new UpgradeBusBlock(controllerProperties()));
 
+    public static final DeferredBlock<ProviderBlock> LIFE_ESSENCE_PROVIDER_INPUT = provider("blocklifeessenceproviderinput");
+    public static final DeferredBlock<ProviderBlock> LIFE_ESSENCE_PROVIDER_OUTPUT = provider("blocklifeessenceprovideroutput");
+    public static final DeferredBlock<ProviderBlock> WILL_PROVIDER_INPUT = provider("blockwillproviderinput");
+    public static final DeferredBlock<ProviderBlock> WILL_PROVIDER_OUTPUT = provider("blockwillprovideroutput");
+    public static final DeferredBlock<ProviderBlock> MANA_PROVIDER_INPUT = provider("blockmanaproviderinput");
+    public static final DeferredBlock<ProviderBlock> MANA_PROVIDER_OUTPUT = provider("blockmanaprovideroutput");
+    public static final DeferredBlock<ProviderBlock> STARLIGHT_PROVIDER_INPUT = provider("blockstarlightproviderinput");
+    public static final DeferredBlock<ProviderBlock> STARLIGHT_PROVIDER_OUTPUT = provider("blockstarlightprovideroutput");
+    public static final DeferredBlock<ProviderBlock> GRID_PROVIDER_INPUT = provider("blockgridproviderinput");
+    public static final DeferredBlock<ProviderBlock> GRID_PROVIDER_OUTPUT = provider("blockgridprovideroutput");
+    public static final DeferredBlock<ProviderBlock> AURA_PROVIDER_INPUT = provider("blockauraproviderinput");
+    public static final DeferredBlock<ProviderBlock> AURA_PROVIDER_OUTPUT = provider("blockauraprovideroutput");
+    public static final DeferredBlock<ProviderBlock> ASPECT_PROVIDER_INPUT = provider("blockaspectproviderinput");
+    public static final DeferredBlock<ProviderBlock> ASPECT_PROVIDER_OUTPUT = provider("blockaspectprovideroutput");
+    public static final DeferredBlock<ProviderBlock> CONSTELLATION_PROVIDER = provider("blockconstellationprovider");
+    public static final DeferredBlock<ProviderBlock> RAINBOW_PROVIDER = provider("blockrainbowprovider");
+    public static final DeferredBlock<ProviderBlock> ME_PATTERN_PROVIDER = provider("blockmepatternprovider");
+
     private MmceBlocks() {
     }
 
@@ -59,5 +78,9 @@ public final class MmceBlocks {
         return BlockBehaviour.Properties.of()
                 .strength(5.0F, 10.0F)
                 .requiresCorrectToolForDrops();
+    }
+
+    private static DeferredBlock<ProviderBlock> provider(String id) {
+        return BLOCKS.register(id, () -> new ProviderBlock(componentProperties()));
     }
 }
