@@ -41,6 +41,8 @@ public final class MmceBlockEntities {
                             MmceBlocks.ASPECT_PROVIDER_OUTPUT.get(),
                             MmceBlocks.CONSTELLATION_PROVIDER.get(),
                             MmceBlocks.RAINBOW_PROVIDER.get(),
+                            MmceBlocks.IMPETUS_PROVIDER_INPUT.get(),
+                            MmceBlocks.IMPETUS_PROVIDER_OUTPUT.get(),
                             MmceBlocks.ME_PATTERN_PROVIDER.get()
                     ).build(null));
 

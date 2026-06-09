@@ -78,7 +78,26 @@ public final class MmceClientSetup {
                 MmceItems.ENERGY_OUTPUT_HATCH.get(),
                 MmceItems.SMART_INTERFACE.get(),
                 MmceItems.PARALLEL_CONTROLLER.get(),
-                MmceItems.UPGRADE_BUS.get());
+                MmceItems.UPGRADE_BUS.get(),
+                MmceItems.LIFE_ESSENCE_PROVIDER_INPUT.get(),
+                MmceItems.LIFE_ESSENCE_PROVIDER_OUTPUT.get(),
+                MmceItems.WILL_PROVIDER_INPUT.get(),
+                MmceItems.WILL_PROVIDER_OUTPUT.get(),
+                MmceItems.MANA_PROVIDER_INPUT.get(),
+                MmceItems.MANA_PROVIDER_OUTPUT.get(),
+                MmceItems.STARLIGHT_PROVIDER_INPUT.get(),
+                MmceItems.STARLIGHT_PROVIDER_OUTPUT.get(),
+                MmceItems.GRID_PROVIDER_INPUT.get(),
+                MmceItems.GRID_PROVIDER_OUTPUT.get(),
+                MmceItems.AURA_PROVIDER_INPUT.get(),
+                MmceItems.AURA_PROVIDER_OUTPUT.get(),
+                MmceItems.ASPECT_PROVIDER_INPUT.get(),
+                MmceItems.ASPECT_PROVIDER_OUTPUT.get(),
+                MmceItems.CONSTELLATION_PROVIDER.get(),
+                MmceItems.RAINBOW_PROVIDER.get(),
+                MmceItems.IMPETUS_PROVIDER_INPUT.get(),
+                MmceItems.IMPETUS_PROVIDER_OUTPUT.get(),
+                MmceItems.ME_PATTERN_PROVIDER.get());
     }
 
     private static void registerStatefulItemModelProperties() {
@@ -121,7 +140,26 @@ public final class MmceClientSetup {
                 MmceBlocks.ENERGY_OUTPUT_HATCH.get(),
                 MmceBlocks.SMART_INTERFACE.get(),
                 MmceBlocks.PARALLEL_CONTROLLER.get(),
-                MmceBlocks.UPGRADE_BUS.get()
+                MmceBlocks.UPGRADE_BUS.get(),
+                MmceBlocks.LIFE_ESSENCE_PROVIDER_INPUT.get(),
+                MmceBlocks.LIFE_ESSENCE_PROVIDER_OUTPUT.get(),
+                MmceBlocks.WILL_PROVIDER_INPUT.get(),
+                MmceBlocks.WILL_PROVIDER_OUTPUT.get(),
+                MmceBlocks.MANA_PROVIDER_INPUT.get(),
+                MmceBlocks.MANA_PROVIDER_OUTPUT.get(),
+                MmceBlocks.STARLIGHT_PROVIDER_INPUT.get(),
+                MmceBlocks.STARLIGHT_PROVIDER_OUTPUT.get(),
+                MmceBlocks.GRID_PROVIDER_INPUT.get(),
+                MmceBlocks.GRID_PROVIDER_OUTPUT.get(),
+                MmceBlocks.AURA_PROVIDER_INPUT.get(),
+                MmceBlocks.AURA_PROVIDER_OUTPUT.get(),
+                MmceBlocks.ASPECT_PROVIDER_INPUT.get(),
+                MmceBlocks.ASPECT_PROVIDER_OUTPUT.get(),
+                MmceBlocks.CONSTELLATION_PROVIDER.get(),
+                MmceBlocks.RAINBOW_PROVIDER.get(),
+                MmceBlocks.IMPETUS_PROVIDER_INPUT.get(),
+                MmceBlocks.IMPETUS_PROVIDER_OUTPUT.get(),
+                MmceBlocks.ME_PATTERN_PROVIDER.get()
         };
     }
 }

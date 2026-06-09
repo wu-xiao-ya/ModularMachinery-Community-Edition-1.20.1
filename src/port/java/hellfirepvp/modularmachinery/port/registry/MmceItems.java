@@ -57,6 +57,8 @@ public final class MmceItems {
     public static final DeferredItem<BlockItem> ASPECT_PROVIDER_OUTPUT = blockItem(MmceBlocks.ASPECT_PROVIDER_OUTPUT);
     public static final DeferredItem<BlockItem> CONSTELLATION_PROVIDER = blockItem(MmceBlocks.CONSTELLATION_PROVIDER);
     public static final DeferredItem<BlockItem> RAINBOW_PROVIDER = blockItem(MmceBlocks.RAINBOW_PROVIDER);
+    public static final DeferredItem<BlockItem> IMPETUS_PROVIDER_INPUT = blockItem(MmceBlocks.IMPETUS_PROVIDER_INPUT);
+    public static final DeferredItem<BlockItem> IMPETUS_PROVIDER_OUTPUT = blockItem(MmceBlocks.IMPETUS_PROVIDER_OUTPUT);
     public static final DeferredItem<BlockItem> ME_PATTERN_PROVIDER = blockItem(MmceBlocks.ME_PATTERN_PROVIDER);
 
     public static final DeferredItem<MmceBlueprintItem> BLUEPRINT = ITEMS.register("itemblueprint",
@@ -97,6 +99,8 @@ public final class MmceItems {
             ASPECT_PROVIDER_OUTPUT,
             CONSTELLATION_PROVIDER,
             RAINBOW_PROVIDER,
+            IMPETUS_PROVIDER_INPUT,
+            IMPETUS_PROVIDER_OUTPUT,
             ME_PATTERN_PROVIDER,
             BLUEPRINT,
             MODULARIUM,

@@ -63,6 +63,8 @@ public final class MmceBlocks {
     public static final DeferredBlock<ProviderBlock> ASPECT_PROVIDER_OUTPUT = provider("blockaspectprovideroutput");
     public static final DeferredBlock<ProviderBlock> CONSTELLATION_PROVIDER = provider("blockconstellationprovider");
     public static final DeferredBlock<ProviderBlock> RAINBOW_PROVIDER = provider("blockrainbowprovider");
+    public static final DeferredBlock<ProviderBlock> IMPETUS_PROVIDER_INPUT = provider("blockimpetusproviderinput");
+    public static final DeferredBlock<ProviderBlock> IMPETUS_PROVIDER_OUTPUT = provider("blockimpetusprovideroutput");
     public static final DeferredBlock<ProviderBlock> ME_PATTERN_PROVIDER = provider("blockmepatternprovider");
 
     private MmceBlocks() {
