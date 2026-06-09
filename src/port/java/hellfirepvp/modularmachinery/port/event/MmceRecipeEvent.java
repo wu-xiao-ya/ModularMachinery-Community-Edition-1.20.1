@@ -2,10 +2,9 @@ package hellfirepvp.modularmachinery.port.event;
 
 import hellfirepvp.modularmachinery.port.blockentity.MachineControllerBlockEntity;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifier;
-import hellfirepvp.modularmachinery.port.integration.kubejs.MmceKubeJSFactoryRecipeThreadBuilder;
-import hellfirepvp.modularmachinery.port.integration.kubejs.MmceKubeJSRecipeThread;
 import hellfirepvp.modularmachinery.port.recipe.MmceRecipeExecutor;
 import hellfirepvp.modularmachinery.port.recipe.MmceRecipeStatus;
+import java.lang.reflect.Method;
 import net.minecraft.resources.ResourceLocation;
 
 public class MmceRecipeEvent extends MmceMachineEvent {
@@ -63,21 +62,35 @@ public class MmceRecipeEvent extends MmceMachineEvent {
         return run;
     }
 
-    public MmceKubeJSRecipeThread getKubeJSRecipeThread() {
-        return MmceKubeJSRecipeThread.of(getController(), run);
+    public Object getKubeJSRecipeThread() {
+        return kubeJSWrapper("hellfirepvp.modularmachinery.port.integration.kubejs.MmceKubeJSRecipeThread");
     }
 
-    public MmceKubeJSRecipeThread getKubeRecipeThread() {
+    public Object getKubeRecipeThread() {
         return getKubeJSRecipeThread();
     }
 
-    public MmceKubeJSFactoryRecipeThreadBuilder getKubeJSFactoryRecipeThread() {
-        return MmceKubeJSFactoryRecipeThreadBuilder.of(getController(), run);
+    public Object getKubeJSFactoryRecipeThread() {
+        return kubeJSWrapper("hellfirepvp.modularmachinery.port.integration.kubejs.MmceKubeJSFactoryRecipeThreadBuilder");
     }
 
-    public MmceKubeJSFactoryRecipeThreadBuilder getKubeFactoryRecipeThread() {
+    public Object getKubeFactoryRecipeThread() {
         return getKubeJSFactoryRecipeThread();
     }
+
+    private Object kubeJSWrapper(String className) {
+        if (run == null) {
+            return null;
+        }
+        try {
+            Class<?> wrapper = Class.forName(className, false, MmceRecipeEvent.class.getClassLoader());
+            Method factory = wrapper.getMethod("of", MachineControllerBlockEntity.class, MmceRecipeExecutor.RecipeRun.class);
+            return factory.invoke(null, getController(), run);
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            return null;
+        }
+    }
+
     public String getRecipeId() {
         return recipeId == null ? "" : recipeId.toString();
     }

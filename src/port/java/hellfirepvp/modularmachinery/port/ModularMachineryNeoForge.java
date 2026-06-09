@@ -5,7 +5,6 @@ import hellfirepvp.modularmachinery.port.capability.MmceCapabilities;
 import hellfirepvp.modularmachinery.port.assembly.MmceSurvivalAssemblyEvents;
 import hellfirepvp.modularmachinery.port.command.MmceCommands;
 import hellfirepvp.modularmachinery.port.data.MmceDataReloadListener;
-import hellfirepvp.modularmachinery.port.integration.kubejs.MmceKubeJSIntegration;
 import hellfirepvp.modularmachinery.port.network.MmcePayloads;
 import hellfirepvp.modularmachinery.port.registry.MmceBlockEntities;
 import hellfirepvp.modularmachinery.port.registry.MmceBlocks;
@@ -44,7 +43,7 @@ public final class ModularMachineryNeoForge {
         NeoForge.EVENT_BUS.addListener(MmceSurvivalAssemblyEvents::onPlayerLoggedOut);
 
         if (ModList.get().isLoaded("kubejs")) {
-            MmceKubeJSIntegration.bootstrap();
+            OptionalIntegration.bootstrapKubeJS();
         }
 
         LOGGER.info("Bootstrapping {} on NeoForge 1.21.1", NAME);
@@ -60,6 +59,20 @@ public final class ModularMachineryNeoForge {
                 setup.getMethod("register", IEventBus.class).invoke(null, modEventBus);
             } catch (ReflectiveOperationException exception) {
                 throw new IllegalStateException("Failed to initialize MMCE client setup", exception);
+            }
+        }
+    }
+
+    private static final class OptionalIntegration {
+        private OptionalIntegration() {
+        }
+
+        private static void bootstrapKubeJS() {
+            try {
+                Class<?> integration = Class.forName("hellfirepvp.modularmachinery.port.integration.kubejs.MmceKubeJSIntegration");
+                integration.getMethod("bootstrap").invoke(null);
+            } catch (ReflectiveOperationException exception) {
+                throw new IllegalStateException("Failed to initialize MMCE KubeJS integration", exception);
             }
         }
     }

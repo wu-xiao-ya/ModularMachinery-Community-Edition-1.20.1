@@ -330,11 +330,11 @@ public final class MmceKubeJSBindings {
     }
 
     public static MmceKubeJSRecipeThread recipeThread(MmceRecipeEvent event) {
-        return event == null ? null : event.getKubeJSRecipeThread();
+        return event == null ? null : MmceKubeJSRecipeThread.of(event.getController(), event.getRecipeRun());
     }
 
     public static MmceKubeJSFactoryRecipeThreadBuilder factoryRecipeThread(MmceRecipeEvent event) {
-        return event == null ? null : event.getKubeJSFactoryRecipeThread();
+        return event == null ? null : MmceKubeJSFactoryRecipeThreadBuilder.of(event.getController(), event.getRecipeRun());
     }
 
     public static MmceKubeJSMachineController controller(MachineControllerBlockEntity controller) {
