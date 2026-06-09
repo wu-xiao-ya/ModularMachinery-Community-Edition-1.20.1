@@ -2,7 +2,10 @@ package hellfirepvp.modularmachinery.port.integration.kubejs;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
 import hellfirepvp.modularmachinery.port.data.MmceScriptDataRegistry;
 import hellfirepvp.modularmachinery.port.event.MmceEventPhase;
@@ -15,8 +18,12 @@ import hellfirepvp.modularmachinery.port.integration.MmceItemChecker;
 import hellfirepvp.modularmachinery.port.integration.MmceItemModifier;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifier;
 import hellfirepvp.modularmachinery.port.integration.MmceScriptValues;
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import net.minecraft.resources.ResourceLocation;
 
 public final class MmceKubeJSRecipeBuilder {
@@ -101,6 +108,26 @@ public final class MmceKubeJSRecipeBuilder {
 
     public MmceKubeJSRecipeBuilder setThreadName(String value) {
         return threadName(value);
+    }
+
+    public MmceKubeJSRecipeBuilder requirementJson(String json) {
+        if (json != null && !json.isBlank()) {
+            add(parseObject(json));
+        }
+        return this;
+    }
+
+    public MmceKubeJSRecipeBuilder addRequirementJson(String json) {
+        return requirementJson(json);
+    }
+
+    public MmceKubeJSRecipeBuilder requirementJson(Object value) {
+        jsonObject(value).ifPresent(this::add);
+        return this;
+    }
+
+    public MmceKubeJSRecipeBuilder addRequirementJson(Object value) {
+        return requirementJson(value);
     }
 
     public MmceKubeJSRecipeBuilder recipeTooltip(String... tooltips) {
@@ -1393,6 +1420,101 @@ public final class MmceKubeJSRecipeBuilder {
 
     private static JsonObject parseObject(String json) {
         return com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+    }
+
+    private static Optional<JsonObject> jsonObject(Object value) {
+        if (value == null) {
+            return Optional.empty();
+        }
+        if (value instanceof JsonObject object) {
+            return Optional.of(object.deepCopy());
+        }
+        if (value instanceof JsonElement element && element.isJsonObject()) {
+            return Optional.of(element.getAsJsonObject().deepCopy());
+        }
+        if (value instanceof Map<?, ?> map) {
+            return Optional.of(mapToJson(map));
+        }
+        Optional<Object> nested = invoke(value, "toJson", "asJson", "getJson");
+        if (nested.isPresent() && nested.get() != value) {
+            Optional<JsonObject> object = jsonObject(nested.get());
+            if (object.isPresent()) {
+                return object;
+            }
+        }
+        if (value instanceof CharSequence sequence) {
+            String json = sequence.toString().trim();
+            if (json.isEmpty()) {
+                return Optional.empty();
+            }
+            JsonElement parsed = JsonParser.parseString(json);
+            return parsed.isJsonObject() ? Optional.of(parsed.getAsJsonObject().deepCopy()) : Optional.empty();
+        }
+        String string = String.valueOf(value).trim();
+        if (string.startsWith("{") && string.endsWith("}")) {
+            JsonElement parsed = JsonParser.parseString(string);
+            return parsed.isJsonObject() ? Optional.of(parsed.getAsJsonObject().deepCopy()) : Optional.empty();
+        }
+        return Optional.empty();
+    }
+
+    private static JsonObject mapToJson(Map<?, ?> map) {
+        JsonObject object = new JsonObject();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            if (entry.getKey() != null) {
+                object.add(String.valueOf(entry.getKey()), jsonElement(entry.getValue()));
+            }
+        }
+        return object;
+    }
+
+    private static JsonElement jsonElement(Object value) {
+        if (value == null) {
+            return JsonNull.INSTANCE;
+        }
+        if (value instanceof JsonElement element) {
+            return element.deepCopy();
+        }
+        if (value instanceof Map<?, ?> map) {
+            return mapToJson(map);
+        }
+        if (value instanceof Iterable<?> iterable) {
+            JsonArray array = new JsonArray();
+            for (Object entry : iterable) {
+                array.add(jsonElement(entry));
+            }
+            return array;
+        }
+        if (value.getClass().isArray()) {
+            JsonArray array = new JsonArray();
+            int length = Array.getLength(value);
+            for (int index = 0; index < length; index++) {
+                array.add(jsonElement(Array.get(value, index)));
+            }
+            return array;
+        }
+        if (value instanceof Number number) {
+            return new JsonPrimitive(number);
+        }
+        if (value instanceof Boolean bool) {
+            return new JsonPrimitive(bool);
+        }
+        return new JsonPrimitive(String.valueOf(value));
+    }
+
+    private static Optional<Object> invoke(Object target, String... names) {
+        if (target == null) {
+            return Optional.empty();
+        }
+        for (String name : names) {
+            try {
+                Method method = target.getClass().getMethod(name);
+                method.setAccessible(true);
+                return Optional.ofNullable(method.invoke(target));
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return Optional.empty();
     }
 
     private JsonObject base(String type, String ioType) {

@@ -81,6 +81,32 @@ public class MmceCTRecipeBuilder {
     }
 
     @ZenCodeType.Method
+    public MmceCTRecipeBuilder requirementJson(String json) {
+        if (json != null && !json.isBlank()) {
+            add(parseObject(json));
+        }
+        return this;
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder addRequirementJson(String json) {
+        return requirementJson(json);
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder requirementJson(IData data) {
+        if (data != null) {
+            add(parseObject(data.accept(DataToJsonStringVisitor.INSTANCE)));
+        }
+        return this;
+    }
+
+    @ZenCodeType.Method
+    public MmceCTRecipeBuilder addRequirementJson(IData data) {
+        return requirementJson(data);
+    }
+
+    @ZenCodeType.Method
     public MmceCTRecipeBuilder setParallelized(boolean value) {
         root.addProperty("parallelized", value);
         return this;

@@ -208,6 +208,9 @@ public record MmceRecipeRequirement(
                             "smart-interface-type", "smart_interface_type", "interface", "type", "name")
                             ? Optional.empty()
                             : Optional.of("missing interface type");
+            case "lifeessence", "life_essence", "mana", "will", "demon_will", "starlight", "grid", "grid_power",
+                 "gp", "aspect", "aura", "rainbow", "constellation" ->
+                    magicParseIssue(type, ioType, object, parsed);
             default -> Optional.of("unsupported requirement type");
         };
     }
@@ -262,6 +265,7 @@ public record MmceRecipeRequirement(
         registerBuiltIn("energy", null, (ioType, object) -> parseEnergy(ioType, object).map(requirement -> (MmceParsedRequirement) requirement));
         registerBuiltIn("interface_number_input", MmceIoType.INPUT, (ioType, object) -> parseSmartInterface(ioType, object).map(requirement -> (MmceParsedRequirement) requirement));
         registerBuiltIn("smart_interface_number_input", MmceIoType.INPUT, (ioType, object) -> parseSmartInterface(ioType, object).map(requirement -> (MmceParsedRequirement) requirement));
+        registerMagicPlaceholders();
     }
 
     private static void registerBuiltIn(String path, MmceIoType defaultIoType, RequirementParser parser) {
@@ -270,6 +274,43 @@ public record MmceRecipeRequirement(
                 Optional.ofNullable(defaultIoType),
                 parser,
                 MmceRecipeRequirement::builtInParseIssue
+        );
+    }
+
+    private static void registerMagicPlaceholders() {
+        registerMagicPlaceholder("lifeessence", null, "lifeessence", "Blood Magic");
+        registerMagicPlaceholder("life_essence", null, "lifeessence", "Blood Magic");
+        registerMagicPlaceholder("life-essence", null, "lifeessence", "Blood Magic");
+        registerMagicPlaceholder("will", null, "will", "Blood Magic");
+        registerMagicPlaceholder("demon_will", null, "will", "Blood Magic");
+        registerMagicPlaceholder("demon-will", null, "will", "Blood Magic");
+        registerMagicPlaceholder("mana", null, "mana", "Botania");
+        registerMagicPlaceholder("starlight", MmceIoType.INPUT, "starlight", "Astral Sorcery");
+        registerMagicPlaceholder("grid", null, "grid", "Extra Utilities 2");
+        registerMagicPlaceholder("grid_power", null, "grid", "Extra Utilities 2");
+        registerMagicPlaceholder("grid-power", null, "grid", "Extra Utilities 2");
+        registerMagicPlaceholder("gp", null, "grid", "Extra Utilities 2");
+        registerMagicPlaceholder("aspect", null, "aspect", "Thaumcraft/Essentia");
+        registerMagicPlaceholder("aura", MmceIoType.INPUT, "aura", "Nature's Aura");
+        registerMagicPlaceholder("rainbow", MmceIoType.INPUT, "rainbow", "Botania/Extra Utilities rainbow provider");
+        registerMagicPlaceholder("constellation", MmceIoType.INPUT, "constellation", "Astral Sorcery");
+    }
+
+    private static void registerMagicPlaceholder(String path, MmceIoType defaultIoType, String kind, String requiredIntegration) {
+        RequirementParser parser = (ioType, object) -> parseMagicPlaceholder(ioType, object, kind, requiredIntegration)
+                .map(requirement -> (MmceParsedRequirement) requirement);
+        RequirementIssueReporter reporter = MmceRecipeRequirement::magicParseIssue;
+        registerType(
+                ResourceLocation.fromNamespaceAndPath(ModularMachineryNeoForge.MODID, path),
+                Optional.ofNullable(defaultIoType),
+                parser,
+                reporter
+        );
+        registerType(
+                ResourceLocation.fromNamespaceAndPath("modularmagic", path),
+                Optional.ofNullable(defaultIoType),
+                parser,
+                reporter
         );
     }
 
@@ -556,6 +597,64 @@ public record MmceRecipeRequirement(
         ));
     }
 
+    private static Optional<MmceMagicPlaceholderRequirement> parseMagicPlaceholder(
+            MmceIoType ioType,
+            JsonObject object,
+            String kind,
+            String requiredIntegration
+    ) {
+        double amount = switch (kind) {
+            case "grid" -> readFirstDouble(object, 0.0D, "power", "amount", "gridPower", "grid-power", "grid_power", "gp");
+            case "will" -> readFirstDouble(object, 0.0D, "amount", "will", "value");
+            case "starlight" -> readFirstDouble(object, 0.0D, "amount", "starlight", "value");
+            case "rainbow", "constellation" -> readFirstDouble(object, 1.0D, "amount", "value");
+            default -> readFirstDouble(object, 0.0D, "amount", "value");
+        };
+        if (amount <= 0.0D) {
+            return Optional.empty();
+        }
+
+        Optional<String> variant = switch (kind) {
+            case "will" -> readFirstString(object, "will-type", "willType", "will_type", "will")
+                    .map(MmceRecipeRequirement::normalizeWillType)
+                    .filter(value -> !value.isBlank());
+            case "aspect" -> readFirstString(object, "aspect", "aspectName", "aspect-name", "aspect_name")
+                    .filter(value -> !value.isBlank());
+            case "aura" -> readFirstString(object, "aura", "auraType", "aura-type", "aura_type", "typeName", "type-name", "type_name")
+                    .filter(value -> !value.isBlank());
+            case "constellation" -> readFirstString(object, "constellation", "constellationName", "constellation-name", "constellation_name")
+                    .filter(value -> !value.isBlank());
+            default -> Optional.empty();
+        };
+        double min = kind.equals("will") ? readFirstDouble(object, 0.0D, "min", "minimum", "minAmount", "min-amount", "min_amount") : 0.0D;
+        double max = kind.equals("will") ? readFirstDouble(object, 100.0D, "max", "maximum", "maxAmount", "max-amount", "max_amount") : 0.0D;
+        return Optional.of(new MmceMagicPlaceholderRequirement(
+                ioType,
+                kind,
+                amount,
+                variant,
+                min,
+                max,
+                readPerTick(object),
+                requiredIntegration
+        ));
+    }
+
+    private static Optional<String> magicParseIssue(ResourceLocation type, Optional<MmceIoType> ioType, JsonObject object,
+                                                   Optional<MmceParsedRequirement> parsed) {
+        if (ioType.isEmpty()) {
+            return Optional.of("missing or invalid io-type");
+        }
+        if (parsed.isEmpty()) {
+            return Optional.of("missing or non-positive magic requirement amount");
+        }
+        if (parsed.get() instanceof MmceMagicPlaceholderRequirement magic) {
+            return Optional.of("magic requirement '" + magic.kind()
+                    + "' parsed, but runtime is unavailable: requires " + magic.requiredIntegration() + " integration");
+        }
+        return Optional.of("magic requirement parsed, but runtime is unavailable");
+    }
+
     private static int readAmount(JsonObject object) {
         return readFirstInt(object, 0, "amount", "mb", "millibuckets", "quantity");
     }
@@ -602,6 +701,15 @@ public record MmceRecipeRequirement(
         return fallback;
     }
 
+    private static double readFirstDouble(JsonObject object, double fallback, String... keys) {
+        for (String key : keys) {
+            if (object.has(key)) {
+                return GsonHelper.getAsDouble(object, key, fallback);
+            }
+        }
+        return fallback;
+    }
+
     private static int readFirstInt(JsonObject object, int fallback, String... keys) {
         for (String key : keys) {
             if (object.has(key)) {
@@ -639,13 +747,28 @@ public record MmceRecipeRequirement(
     }
 
     private static ResourceLocation normalizeType(ResourceLocation type) {
-        if (!"modularmachinery".equals(type.getNamespace())) {
+        if (!"modularmachinery".equals(type.getNamespace()) && !"modularmagic".equals(type.getNamespace())) {
             return type;
         }
         String normalizedPath = type.getPath().replace('-', '_');
         return normalizedPath.equals(type.getPath())
                 ? type
                 : ResourceLocation.fromNamespaceAndPath(type.getNamespace(), normalizedPath);
+    }
+
+    private static boolean readPerTick(JsonObject object) {
+        if (object.has("perTick")) {
+            return GsonHelper.getAsBoolean(object, "perTick", false);
+        }
+        if (object.has("per-tick")) {
+            return GsonHelper.getAsBoolean(object, "per-tick", false);
+        }
+        return object.has("per_tick") && GsonHelper.getAsBoolean(object, "per_tick", false);
+    }
+
+    private static String normalizeWillType(String value) {
+        String normalized = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT).replace('-', '_');
+        return "default".equals(normalized) ? "raw" : normalized;
     }
 
     private static boolean readTriggerRepeatable(JsonObject object) {
