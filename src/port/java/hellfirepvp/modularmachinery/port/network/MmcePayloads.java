@@ -35,6 +35,11 @@ public final class MmcePayloads {
                 MmceFluidHatchDataPayload::handle
         );
         registrar.playToClient(
+                MmceControllerDataPayload.TYPE,
+                MmceControllerDataPayload.STREAM_CODEC,
+                MmceControllerDataPayload::handle
+        );
+        registrar.playToClient(
                 MmceSmartInterfaceDataPayload.TYPE,
                 MmceSmartInterfaceDataPayload.STREAM_CODEC,
                 MmceSmartInterfaceDataPayload::handle

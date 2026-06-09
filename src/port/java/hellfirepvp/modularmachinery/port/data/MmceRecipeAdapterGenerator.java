@@ -45,6 +45,11 @@ final class MmceRecipeAdapterGenerator {
     private static final ResourceLocation CHEMICAL = target("chemical");
     private static final ResourceLocation ENERGY = target("energy");
     private static final ResourceLocation DURATION = target("duration");
+    private static final String SUPPORTED_ADAPTER_DESCRIPTION = "supported built-in adapters are minecraft:furnace, "
+            + "minecraft:smelting, minecraft:blasting, minecraft:smoking, minecraft:campfire, "
+            + "minecraft:campfire_cooking, minecraft:crafting, minecraft:crafting_shaped, "
+            + "minecraft:crafting_shapeless, minecraft:stonecutter, and minecraft:stonecutting; "
+            + "dynamic adapters must reference a loaded MMCE machine id";
 
     static MmceDataRegistry.Snapshot expandAdapters(
             MmceDataRegistry.Snapshot snapshot,
@@ -63,6 +68,13 @@ final class MmceRecipeAdapterGenerator {
         List<MmceDataLoadIssue> loadIssues = new ArrayList<>(snapshot.loadIssues());
         for (MmceRecipeAdapterDefinition adapter : snapshot.adapters().values()) {
             try {
+                if (isUnsupportedAdapter(adapter, snapshot, recipeManager, registries)) {
+                    loadIssues.add(unsupportedAdapterIssue(adapter));
+                    ModularMachineryNeoForge.LOGGER.warn(
+                            "Unsupported MMCE recipe adapter type {} in {} targeting machine {}; no recipes were generated ({})",
+                            adapter.adapterId(), adapter.id(), adapter.machineId(), SUPPORTED_ADAPTER_DESCRIPTION);
+                    continue;
+                }
                 List<MmceRecipeDefinition> generated = generate(adapter, snapshot, recipeManager, registries);
                 for (MmceRecipeDefinition recipe : generated) {
                     recipes.put(recipe.id(), recipe);
@@ -120,9 +132,42 @@ final class MmceRecipeAdapterGenerator {
         if (adapter.adapterId().equals(MINECRAFT_STONECUTTING) || adapter.adapterId().equals(MINECRAFT_STONECUTTER)) {
             return generateStonecutting(adapter, recipeManager, registries);
         }
-
-        ModularMachineryNeoForge.LOGGER.debug("MMCE recipe adapter {} is not implemented yet", adapter.adapterId());
         return List.of();
+    }
+
+    private static boolean isUnsupportedAdapter(
+            MmceRecipeAdapterDefinition adapter,
+            MmceDataRegistry.Snapshot snapshot,
+            RecipeManager recipeManager,
+            HolderLookup.Provider registries
+    ) {
+        return recipeManager != null
+                && registries != null
+                && !isDynamicMachineAdapter(adapter, snapshot)
+                && !isBuiltInAdapter(adapter.adapterId());
+    }
+
+    private static boolean isBuiltInAdapter(ResourceLocation adapterId) {
+        return adapterId.equals(MINECRAFT_FURNACE)
+                || adapterId.equals(MINECRAFT_SMELTING)
+                || adapterId.equals(MINECRAFT_BLASTING)
+                || adapterId.equals(MINECRAFT_SMOKING)
+                || adapterId.equals(MINECRAFT_CAMPFIRE)
+                || adapterId.equals(MINECRAFT_CAMPFIRE_COOKING)
+                || adapterId.equals(MINECRAFT_CRAFTING)
+                || adapterId.equals(MINECRAFT_CRAFTING_SHAPED)
+                || adapterId.equals(MINECRAFT_CRAFTING_SHAPELESS)
+                || adapterId.equals(MINECRAFT_STONECUTTER)
+                || adapterId.equals(MINECRAFT_STONECUTTING);
+    }
+
+    private static MmceDataLoadIssue unsupportedAdapterIssue(MmceRecipeAdapterDefinition adapter) {
+        return new MmceDataLoadIssue(
+                "recipe adapter generation",
+                adapter.id(),
+                "Unsupported adapter type '" + adapter.adapterId() + "' for target machine '"
+                        + adapter.machineId() + "'; no recipes were generated. " + SUPPORTED_ADAPTER_DESCRIPTION
+        );
     }
 
     private static boolean isDynamicMachineAdapter(MmceRecipeAdapterDefinition adapter, MmceDataRegistry.Snapshot snapshot) {

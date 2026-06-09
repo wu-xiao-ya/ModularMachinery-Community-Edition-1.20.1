@@ -110,8 +110,25 @@ public final class MmceKubeJSPlugin implements KubeJSPlugin {
         bindings.add("MMCEEvents", MmceKubeJSEvents.class);
         bindings.add("MachineBuilder", MmceKubeJSMachineBuilder.class);
         bindings.add("MachineRegistry", MmceKubeJSMachineBuilder.class);
+        bindings.add("RecipeBuilder", MmceKubeJSBindings.class);
+        bindings.add("RecipePrimer", MmceKubeJSBindings.class);
+        bindings.add("BlockArrayBuilder", MmceKubeJSBlockArrayBuilder.class);
+        bindings.add("IngredientArrayBuilder", MmceKubeJSBindings.class);
+        bindings.add("IngredientArrayPrimer", MmceKubeJSBindings.class);
+        bindings.add("DynamicPatternBuilder", MmceKubeJSBindings.class);
+        bindings.add("FactoryRecipeThread", MmceKubeJSBindings.class);
+        bindings.add("FactoryRecipeThreadBuilder", MmceKubeJSBindings.class);
+        bindings.add("MachineModifier", MmceKubeJSBindings.class);
         bindings.add("RecipeAdapterBuilder", MmceRecipeAdapterBuilder.class);
+        bindings.add("RecipeModifierBuilder", MmceRecipeModifierBuilder.class);
+        bindings.add("MultiblockModifierBuilder", MmceKubeJSMultiBlockModifierBuilder.class);
+        bindings.add("MultiBlockModifierBuilder", MmceKubeJSMultiBlockModifierBuilder.class);
+        bindings.add("MachineUpgradeBuilder", MmceMachineUpgradeBuilder.class);
+        bindings.add("DynamicMachineUpgradeBuilder", MmceDynamicMachineUpgradeBuilder.class);
+        bindings.add("MachineUpgradeHelper", MmceKubeJSRegistryUpgrade.class);
         bindings.add("UpgradeStackBuilder", MmceUpgradeStackBuilder.class);
+        bindings.add("SmartInterfaceType", MmceSmartInterfaceTypeBuilder.class);
+        bindings.add("SmartInterfaceTypeBuilder", MmceSmartInterfaceTypeBuilder.class);
         bindings.add("RegistryUpgrade", MmceKubeJSRegistryUpgrade.class);
         bindings.add("RecipeFailureActions", MmceKubeJSRecipeFailureActions.class);
     }

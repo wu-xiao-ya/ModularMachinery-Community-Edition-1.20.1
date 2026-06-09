@@ -33,6 +33,13 @@ public final class MmceClientSetup {
     private MmceClientSetup() {
     }
 
+    public static void register(net.neoforged.bus.api.IEventBus modEventBus) {
+        initClient();
+        modEventBus.addListener(MmceClientSetup::clientSetup);
+        modEventBus.addListener(MmceClientSetup::registerBlockColors);
+        modEventBus.addListener(MmceClientSetup::registerItemColors);
+    }
+
     public static void initClient() {
         MmceBlueprintScreenOpener.register(MmceBlueprintScreen::open);
     }

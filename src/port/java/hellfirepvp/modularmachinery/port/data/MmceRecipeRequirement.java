@@ -4,7 +4,10 @@ import com.google.gson.JsonObject;
 import hellfirepvp.modularmachinery.port.ModularMachineryNeoForge;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -19,18 +22,71 @@ public record MmceRecipeRequirement(
         Optional<String> parseIssue,
         JsonObject rawJson
 ) {
+    private static final Map<ResourceLocation, RequirementType> REQUIREMENT_TYPES = new ConcurrentHashMap<>();
+
+    static {
+        registerBuiltIns();
+    }
+
+    @FunctionalInterface
+    public interface RequirementParser {
+        Optional<MmceParsedRequirement> parse(MmceIoType ioType, JsonObject object);
+    }
+
+    @FunctionalInterface
+    public interface RequirementIssueReporter {
+        Optional<String> issue(ResourceLocation type, Optional<MmceIoType> ioType, JsonObject object,
+                               Optional<MmceParsedRequirement> parsed);
+    }
+
+    private record RequirementType(
+            Optional<MmceIoType> defaultIoType,
+            RequirementParser parser,
+            RequirementIssueReporter issueReporter
+    ) {
+        private RequirementType {
+            defaultIoType = defaultIoType == null ? Optional.empty() : defaultIoType;
+            parser = Objects.requireNonNull(parser, "parser");
+            issueReporter = issueReporter == null ? MmceRecipeRequirement::runtimeUnsupportedIssue : issueReporter;
+        }
+    }
+
+    public static void registerType(ResourceLocation type, RequirementParser parser) {
+        registerType(type, Optional.empty(), parser, MmceRecipeRequirement::runtimeUnsupportedIssue);
+    }
+
+    public static void registerType(ResourceLocation type, RequirementParser parser, RequirementIssueReporter issueReporter) {
+        registerType(type, Optional.empty(), parser, issueReporter);
+    }
+
+    public static void registerType(ResourceLocation type, MmceIoType defaultIoType, RequirementParser parser) {
+        registerType(type, Optional.ofNullable(defaultIoType), parser, MmceRecipeRequirement::runtimeUnsupportedIssue);
+    }
+
+    public static void registerType(ResourceLocation type, MmceIoType defaultIoType, RequirementParser parser,
+                                    RequirementIssueReporter issueReporter) {
+        registerType(type, Optional.ofNullable(defaultIoType), parser, issueReporter);
+    }
+
+    public static void registerType(ResourceLocation type, Optional<MmceIoType> defaultIoType, RequirementParser parser,
+                                    RequirementIssueReporter issueReporter) {
+        ResourceLocation normalizedType = normalizeType(Objects.requireNonNull(type, "type"));
+        REQUIREMENT_TYPES.put(normalizedType, new RequirementType(defaultIoType, parser, issueReporter));
+    }
+
     static MmceRecipeRequirement parse(JsonObject object) {
         ResourceLocation type = normalizeType(MmceJsonUtil.modId(GsonHelper.getAsString(object, "type")));
         Optional<MmceIoType> ioType = MmceIoType.byName(
                         MmceJsonUtil.optionalString(object, "io-type", "ioType", "io_type", "io").orElse(""))
                 .or(() -> defaultIoType(type));
+        Optional<MmceParsedRequirement> parsed = parseTyped(type, ioType, object);
         return new MmceRecipeRequirement(
                 type,
                 ioType,
                 MmceJsonUtil.optionalString(object, "selector-tag", "selectorTag", "selector_tag")
                         .filter(tag -> !tag.isBlank()),
-                parseTyped(type, ioType, object),
-                parseIssue(type, ioType, object),
+                parsed,
+                parseIssue(type, ioType, object, parsed),
                 object.deepCopy()
         );
     }
@@ -54,21 +110,24 @@ public record MmceRecipeRequirement(
     }
 
     private static Optional<MmceIoType> defaultIoType(ResourceLocation type) {
-        if (!"modularmachinery".equals(type.getNamespace())) {
-            return Optional.empty();
-        }
-        return switch (type.getPath()) {
-            case "fuel", "fuel_item", "fuel_item_input", "item_durability", "ingredient_array_input", "catalyst",
-                    "interface_number_input", "smart_interface_number_input" -> Optional.of(MmceIoType.INPUT);
-            case "ingredient_array_output", "random_item_output" -> Optional.of(MmceIoType.OUTPUT);
-            default -> Optional.empty();
-        };
+        RequirementType registered = REQUIREMENT_TYPES.get(type);
+        return registered == null ? Optional.empty() : registered.defaultIoType();
     }
 
-    private static Optional<String> parseIssue(ResourceLocation type, Optional<MmceIoType> ioType, JsonObject object) {
+    private static Optional<String> parseIssue(ResourceLocation type, Optional<MmceIoType> ioType, JsonObject object,
+                                               Optional<MmceParsedRequirement> parsed) {
+        RequirementType registered = REQUIREMENT_TYPES.get(type);
+        if (registered != null) {
+            return registered.issueReporter().issue(type, ioType, object, parsed);
+        }
         if (!"modularmachinery".equals(type.getNamespace())) {
             return Optional.of("external requirement type is not executable by the built-in port parser");
         }
+        return Optional.of("unsupported requirement type");
+    }
+
+    private static Optional<String> builtInParseIssue(ResourceLocation type, Optional<MmceIoType> ioType, JsonObject object,
+                                                     Optional<MmceParsedRequirement> parsed) {
         if (ioType.isEmpty()) {
             return Optional.of("missing or invalid io-type");
         }
@@ -114,23 +173,64 @@ public record MmceRecipeRequirement(
     }
 
     private static Optional<MmceParsedRequirement> parseTyped(ResourceLocation type, Optional<MmceIoType> ioType, JsonObject object) {
-        if (ioType.isEmpty() || !"modularmachinery".equals(type.getNamespace())) {
+        RequirementType registered = REQUIREMENT_TYPES.get(type);
+        if (registered == null || ioType.isEmpty()) {
             return Optional.empty();
         }
+        return registered.parser().parse(ioType.get(), object);
+    }
 
-        return switch (type.getPath()) {
-            case "fuel", "fuel_item", "fuel_item_input" -> parseFuel(ioType.get(), object).map(requirement -> (MmceParsedRequirement) requirement);
-            case "item", "item_durability" -> parseItemOrFuel(ioType.get(), object);
-            case "ingredient_array_input", "ingredient_array_output", "ingredient_array", "random_item_output" -> parseIngredientArray(ioType.get(), object, false).map(requirement -> (MmceParsedRequirement) requirement);
-            case "catalyst" -> parseIngredientArray(ioType.get(), object, true).map(requirement -> (MmceParsedRequirement) requirement);
-            case "fluid" -> parseFluid(ioType.get(), object, false).map(requirement -> (MmceParsedRequirement) requirement);
-            case "fluid_pertick", "fluid_per_tick" -> parseFluid(ioType.get(), object, true).map(requirement -> (MmceParsedRequirement) requirement);
-            case "gas", "chemical" -> parseChemical(ioType.get(), object, false).map(requirement -> (MmceParsedRequirement) requirement);
-            case "gas_pertick", "gas_per_tick", "chemical_pertick", "chemical_per_tick" -> parseChemical(ioType.get(), object, true).map(requirement -> (MmceParsedRequirement) requirement);
-            case "energy" -> parseEnergy(ioType.get(), object).map(requirement -> (MmceParsedRequirement) requirement);
-            case "interface_number_input", "smart_interface_number_input" -> parseSmartInterface(ioType.get(), object).map(requirement -> (MmceParsedRequirement) requirement);
-            default -> Optional.empty();
-        };
+    private static Optional<String> defaultRegisteredIssue(ResourceLocation type, Optional<MmceIoType> ioType, JsonObject object,
+                                                          Optional<MmceParsedRequirement> parsed) {
+        if (ioType.isEmpty()) {
+            return Optional.of("missing or invalid io-type");
+        }
+        return parsed.isPresent() ? Optional.empty() : Optional.of("failed to parse registered requirement type");
+    }
+
+    private static Optional<String> runtimeUnsupportedIssue(ResourceLocation type, Optional<MmceIoType> ioType, JsonObject object,
+                                                           Optional<MmceParsedRequirement> parsed) {
+        if (ioType.isEmpty()) {
+            return Optional.of("missing or invalid io-type");
+        }
+        if (parsed.isEmpty()) {
+            return Optional.of("failed to parse registered requirement type");
+        }
+        return Optional.of("registered requirement type has no MMCE runtime executor");
+    }
+
+    private static void registerBuiltIns() {
+        registerBuiltIn("fuel", MmceIoType.INPUT, (ioType, object) -> parseFuel(ioType, object).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("fuel_item", MmceIoType.INPUT, (ioType, object) -> parseFuel(ioType, object).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("fuel_item_input", MmceIoType.INPUT, (ioType, object) -> parseFuel(ioType, object).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("item", null, MmceRecipeRequirement::parseItemOrFuel);
+        registerBuiltIn("item_durability", MmceIoType.INPUT, MmceRecipeRequirement::parseItemOrFuel);
+        registerBuiltIn("ingredient_array_input", MmceIoType.INPUT, (ioType, object) -> parseIngredientArray(ioType, object, false).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("ingredient_array_output", MmceIoType.OUTPUT, (ioType, object) -> parseIngredientArray(ioType, object, false).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("ingredient_array", null, (ioType, object) -> parseIngredientArray(ioType, object, false).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("random_item_output", MmceIoType.OUTPUT, (ioType, object) -> parseIngredientArray(ioType, object, false).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("catalyst", MmceIoType.INPUT, (ioType, object) -> parseIngredientArray(ioType, object, true).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("fluid", null, (ioType, object) -> parseFluid(ioType, object, false).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("fluid_pertick", null, (ioType, object) -> parseFluid(ioType, object, true).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("fluid_per_tick", null, (ioType, object) -> parseFluid(ioType, object, true).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("gas", null, (ioType, object) -> parseChemical(ioType, object, false).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("chemical", null, (ioType, object) -> parseChemical(ioType, object, false).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("gas_pertick", null, (ioType, object) -> parseChemical(ioType, object, true).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("gas_per_tick", null, (ioType, object) -> parseChemical(ioType, object, true).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("chemical_pertick", null, (ioType, object) -> parseChemical(ioType, object, true).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("chemical_per_tick", null, (ioType, object) -> parseChemical(ioType, object, true).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("energy", null, (ioType, object) -> parseEnergy(ioType, object).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("interface_number_input", MmceIoType.INPUT, (ioType, object) -> parseSmartInterface(ioType, object).map(requirement -> (MmceParsedRequirement) requirement));
+        registerBuiltIn("smart_interface_number_input", MmceIoType.INPUT, (ioType, object) -> parseSmartInterface(ioType, object).map(requirement -> (MmceParsedRequirement) requirement));
+    }
+
+    private static void registerBuiltIn(String path, MmceIoType defaultIoType, RequirementParser parser) {
+        registerType(
+                ResourceLocation.fromNamespaceAndPath(ModularMachineryNeoForge.MODID, path),
+                Optional.ofNullable(defaultIoType),
+                parser,
+                MmceRecipeRequirement::builtInParseIssue
+        );
     }
 
     private static Optional<MmceItemRequirement> parseItem(MmceIoType ioType, JsonObject object) {

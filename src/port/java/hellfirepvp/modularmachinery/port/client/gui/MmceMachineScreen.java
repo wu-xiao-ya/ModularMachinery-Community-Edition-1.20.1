@@ -19,6 +19,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -52,6 +53,8 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     private static final int BAR_Y = 10;
     private static final int BAR_WIDTH = 20;
     private static final int BAR_HEIGHT = 61;
+    private static final int BAR_INNER_X = BAR_X + 1;
+    private static final int BAR_INNER_WIDTH = BAR_WIDTH - 2;
     private EditBox parallelismBox;
     private EditBox smartInterfaceBox;
     private Button smartPrevButton;
@@ -132,11 +135,12 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         }
         int x = statusX();
         int y = statusY();
+        int maxWidth = statusWidth(x);
         for (Component line : menu.statusLines()) {
             if (y >= menu.playerInventoryY() - 16) {
                 break;
             }
-            guiGraphics.drawString(font, line, x, y, y == statusY() ? TEXT : MUTED_TEXT, true);
+            drawTrimmed(guiGraphics, line.getString(), x, y, maxWidth, y == statusY() ? TEXT : MUTED_TEXT);
             y += 10;
         }
         guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, MUTED_TEXT, false);
@@ -344,8 +348,8 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
     }
 
     private void fillFluidBar(GuiGraphics guiGraphics, int left, int top, int filled, int color) {
-        guiGraphics.fill(left + BAR_X + 1, top + BAR_Y + BAR_HEIGHT - filled,
-                left + BAR_X + BAR_WIDTH - 1, top + BAR_Y + BAR_HEIGHT, color);
+        guiGraphics.fill(left + BAR_INNER_X, top + BAR_Y + BAR_HEIGHT - filled,
+                left + BAR_INNER_X + BAR_INNER_WIDTH, top + BAR_Y + BAR_HEIGHT, color);
     }
 
     private boolean renderFluidContent(GuiGraphics guiGraphics, int left, int top, int filled, FluidStack fluid) {
@@ -355,6 +359,9 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
             return false;
         }
         TextureAtlasSprite sprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(stillTexture);
+        if (sprite.contents().name().equals(MissingTextureAtlasSprite.getLocation())) {
+            return false;
+        }
         int color = extensions.getTintColor(fluid);
         float alpha = ((color >>> 24) & 0xFF) / 255.0F;
         float red = ((color >>> 16) & 0xFF) / 255.0F;
@@ -365,7 +372,7 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
         while (rendered < filled) {
             int tileHeight = Math.min(16, filled - rendered);
             int y = top + BAR_Y + BAR_HEIGHT - filled + rendered;
-            guiGraphics.blit(left + BAR_X, y, 0, BAR_WIDTH, tileHeight, sprite);
+            guiGraphics.blit(left + BAR_INNER_X, y, 0, BAR_INNER_WIDTH, tileHeight, sprite);
             rendered += tileHeight;
         }
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -812,6 +819,15 @@ public final class MmceMachineScreen extends AbstractContainerScreen<MmceMachine
                     ENERGY_INPUT_HATCH, ENERGY_OUTPUT_HATCH -> 14;
             default -> 22;
         };
+    }
+
+    private int statusWidth(int x) {
+        int rightPadding = switch (menu.kind()) {
+            case CONTROLLER -> 12;
+            case UPGRADE_BUS -> 8;
+            default -> 7;
+        };
+        return Math.max(0, imageWidth - x - rightPadding);
     }
 
     private static ResourceLocation texture(String name) {

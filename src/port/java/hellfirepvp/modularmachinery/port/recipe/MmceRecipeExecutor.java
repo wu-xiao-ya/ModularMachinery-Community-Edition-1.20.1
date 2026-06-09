@@ -591,7 +591,7 @@ public final class MmceRecipeExecutor {
 
     private static StartCheck checkSupported(MmceRecipeDefinition recipe) {
         for (MmceRecipeRequirement requirement : recipe.requirements()) {
-            if (requirement.parsed().isEmpty()) {
+            if (requirement.parsed().isEmpty() || requirement.parseIssue().isPresent()) {
                 return StartCheck.failure(MmceRecipeStatus.UNSUPPORTED_REQUIREMENT,
                         recipe.id() + " " + requirement.type());
             }

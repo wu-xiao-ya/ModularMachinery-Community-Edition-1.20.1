@@ -1,6 +1,6 @@
 package hellfirepvp.modularmachinery.port.data;
 
-public sealed interface MmceParsedRequirement permits MmceItemRequirement, MmceFuelRequirement, MmceFluidRequirement, MmceChemicalRequirement, MmceEnergyRequirement, MmceIngredientArrayRequirement, MmceSmartInterfaceRequirement {
+public interface MmceParsedRequirement {
     MmceIoType ioType();
 
     float chance();

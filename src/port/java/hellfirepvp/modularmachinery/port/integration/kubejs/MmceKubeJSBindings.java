@@ -42,9 +42,11 @@ import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeRegistry;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeAdapterBuilder;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifier;
 import hellfirepvp.modularmachinery.port.integration.MmceRecipeModifierBuilder;
+import hellfirepvp.modularmachinery.port.integration.MmceScriptValues;
 import hellfirepvp.modularmachinery.port.integration.MmceSmartInterfaceTypeBuilder;
 import hellfirepvp.modularmachinery.port.integration.MmceUpgradeStackBuilder;
 import hellfirepvp.modularmachinery.port.integration.MmceUpgradeEventHandler;
+import java.lang.reflect.Array;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 
@@ -143,6 +145,62 @@ public final class MmceKubeJSBindings {
 
     public static Class<MmceKubeJSMachineBuilder> machineBuilderClass() {
         return MmceKubeJSMachineBuilder.class;
+    }
+
+    public static Class<MmceKubeJSRecipeBuilder> recipeBuilderClass() {
+        return MmceKubeJSRecipeBuilder.class;
+    }
+
+    public static Class<MmceKubeJSBlockArrayBuilder> blockArrayBuilderClass() {
+        return MmceKubeJSBlockArrayBuilder.class;
+    }
+
+    public static Class<MmceKubeJSIngredientArrayPrimer> ingredientArrayPrimerClass() {
+        return MmceKubeJSIngredientArrayPrimer.class;
+    }
+
+    public static Class<MmceKubeJSDynamicPatternBuilder> dynamicPatternBuilderClass() {
+        return MmceKubeJSDynamicPatternBuilder.class;
+    }
+
+    public static Class<MmceKubeJSFactoryRecipeThreadBuilder> factoryRecipeThreadBuilderClass() {
+        return MmceKubeJSFactoryRecipeThreadBuilder.class;
+    }
+
+    public static Class<MmceRecipeAdapterBuilder> recipeAdapterBuilderClass() {
+        return MmceRecipeAdapterBuilder.class;
+    }
+
+    public static Class<MmceRecipeModifierBuilder> recipeModifierBuilderClass() {
+        return MmceRecipeModifierBuilder.class;
+    }
+
+    public static Class<MmceKubeJSMultiBlockModifierBuilder> multiBlockModifierBuilderClass() {
+        return MmceKubeJSMultiBlockModifierBuilder.class;
+    }
+
+    public static Class<MmceKubeJSMultiBlockModifierBuilder> multiblockModifierBuilderClass() {
+        return multiBlockModifierBuilderClass();
+    }
+
+    public static Class<MmceMachineUpgradeBuilder> machineUpgradeBuilderClass() {
+        return MmceMachineUpgradeBuilder.class;
+    }
+
+    public static Class<MmceDynamicMachineUpgradeBuilder> dynamicMachineUpgradeBuilderClass() {
+        return MmceDynamicMachineUpgradeBuilder.class;
+    }
+
+    public static Class<MmceKubeJSRegistryUpgrade> machineUpgradeHelperClass() {
+        return MmceKubeJSRegistryUpgrade.class;
+    }
+
+    public static Class<MmceUpgradeStackBuilder> upgradeStackBuilderClass() {
+        return MmceUpgradeStackBuilder.class;
+    }
+
+    public static Class<MmceSmartInterfaceTypeBuilder> smartInterfaceTypeBuilderClass() {
+        return MmceSmartInterfaceTypeBuilder.class;
     }
 
     public static Class<MmceKubeJSRecipeFailureActions> recipeFailureActions() {
@@ -250,6 +308,22 @@ public final class MmceKubeJSBindings {
         return new MmceKubeJSFactoryRecipeThreadBuilder(threadName);
     }
 
+    public static MmceKubeJSFactoryRecipeThreadBuilder createCoreThread(String threadName) {
+        return coreThread(threadName);
+    }
+
+    public static MmceKubeJSFactoryRecipeThreadBuilder newFactoryRecipeThreadBuilder(String threadName) {
+        return coreThread(threadName);
+    }
+
+    public static MmceKubeJSFactoryRecipeThreadBuilder factoryRecipeThreadBuilder(String threadName) {
+        return coreThread(threadName);
+    }
+
+    public static MmceKubeJSFactoryRecipeThreadBuilder newFactoryRecipeThread(String threadName) {
+        return coreThread(threadName);
+    }
+
     public static MmceKubeJSRecipeThread recipeThread(MmceRecipeEvent event) {
         return event == null ? null : event.getKubeJSRecipeThread();
     }
@@ -274,6 +348,18 @@ public final class MmceKubeJSBindings {
         return MmceSmartInterfaceTypeBuilder.create(type, defaultValue);
     }
 
+    public static MmceSmartInterfaceTypeBuilder smartInterfaceTypeBuilder(String type, float defaultValue) {
+        return smartInterfaceType(type, defaultValue);
+    }
+
+    public static MmceSmartInterfaceTypeBuilder newSmartInterfaceType(String type, float defaultValue) {
+        return smartInterfaceType(type, defaultValue);
+    }
+
+    public static MmceSmartInterfaceTypeBuilder newSmartInterfaceTypeBuilder(String type, float defaultValue) {
+        return smartInterfaceType(type, defaultValue);
+    }
+
     public static MmceKubeJSBlockArrayBuilder blockArray() {
         return MmceKubeJSBlockArrayBuilder.newBuilder();
     }
@@ -295,6 +381,14 @@ public final class MmceKubeJSBindings {
     }
 
     public static MmceKubeJSBlockArrayBuilder newBlockArrayBuilder(MmceKubeJSBlockArrayBuilder blockArray) {
+        return blockArray(blockArray);
+    }
+
+    public static MmceKubeJSBlockArrayBuilder newBlockArray() {
+        return blockArray();
+    }
+
+    public static MmceKubeJSBlockArrayBuilder newBlockArray(MmceKubeJSBlockArrayBuilder blockArray) {
         return blockArray(blockArray);
     }
 
@@ -344,6 +438,19 @@ public final class MmceKubeJSBindings {
                 .cancelIfPerTickFails(cancelIfPerTickFails);
     }
 
+    public static MmceKubeJSRecipeBuilder newBuilder(String registryName, String machine, int recipeTime) {
+        return recipe(registryName, machine, recipeTime);
+    }
+
+    public static MmceKubeJSRecipeBuilder newBuilder(String registryName, String machine, int recipeTime, int priority) {
+        return recipe(registryName, machine, recipeTime, priority);
+    }
+
+    public static MmceKubeJSRecipeBuilder newBuilder(String registryName, String machine, int recipeTime,
+                                                     int priority, boolean cancelIfPerTickFails) {
+        return recipe(registryName, machine, recipeTime, priority, cancelIfPerTickFails);
+    }
+
     public static MmceKubeJSRecipeBuilder newRecipeBuilder(String registryName, String machine, int recipeTime) {
         return recipe(registryName, machine, recipeTime);
     }
@@ -374,7 +481,23 @@ public final class MmceKubeJSBindings {
         return new MmceKubeJSIngredientArrayPrimer();
     }
 
+    public static MmceKubeJSIngredientArrayPrimer newBuilder() {
+        return ingredientArray();
+    }
+
     public static MmceKubeJSIngredientArrayPrimer ingredientArrayPrimer() {
+        return ingredientArray();
+    }
+
+    public static MmceKubeJSIngredientArrayPrimer newIngredientArrayBuilder() {
+        return ingredientArray();
+    }
+
+    public static MmceKubeJSIngredientArrayPrimer ingredientArrayBuilder() {
+        return ingredientArray();
+    }
+
+    public static MmceKubeJSIngredientArrayPrimer newIngredientArrayPrimer() {
         return ingredientArray();
     }
 
@@ -737,6 +860,40 @@ public final class MmceKubeJSBindings {
         patchMachineDynamicPattern(machineId, pattern);
     }
 
+    public static void patchMachineSingleBlockModifier(String machineId, Object x, Object y, Object z, Object elements,
+                                                       String description, MmceRecipeModifier... modifiers) {
+        patchMachineSingleBlockModifier(machineId, x, y, z, elements, description, "", "", modifiers);
+    }
+
+    public static void patchMachineSingleBlockModifier(String machineId, Object x, Object y, Object z, Object elements,
+                                                       String description, String nbtJson, String previewNbtJson,
+                                                       MmceRecipeModifier... modifiers) {
+        MmceMachineDefinitionPatcher.patch(machineId, "kubejs/machine_modifiers", root -> {
+            JsonObject entry = new JsonObject();
+            entry.add("x", scalarOrArray(x));
+            entry.add("y", scalarOrArray(y));
+            entry.add("z", scalarOrArray(z));
+            entry.add("elements", blockElements(elements));
+            if (description != null && !description.isBlank()) {
+                entry.addProperty("description", description);
+            }
+            addNbt(entry, nbtJson, previewNbtJson);
+            addModifiers(entry, modifiers);
+            MmceMachineDefinitionPatcher.array(root, "modifiers").add(entry);
+        });
+    }
+
+    public static void addSingleBlockModifier(String machineId, Object x, Object y, Object z, Object elements,
+                                              String description, MmceRecipeModifier... modifiers) {
+        patchMachineSingleBlockModifier(machineId, x, y, z, elements, description, modifiers);
+    }
+
+    public static void addSingleBlockModifier(String machineId, Object x, Object y, Object z, Object elements,
+                                              String description, String nbtJson, String previewNbtJson,
+                                              MmceRecipeModifier... modifiers) {
+        patchMachineSingleBlockModifier(machineId, x, y, z, elements, description, nbtJson, previewNbtJson, modifiers);
+    }
+
     public static void patchMachineMultiBlockModifier(String machineId, MmceKubeJSMultiBlockModifierReplacement multiBlockModifier) {
         if (multiBlockModifier == null) {
             return;
@@ -782,6 +939,18 @@ public final class MmceKubeJSBindings {
 
     public static MmceRecipeModifierBuilder modifierBuilder() {
         return MmceRecipeModifierBuilder.newBuilder();
+    }
+
+    public static MmceRecipeModifierBuilder recipeModifierBuilder() {
+        return modifierBuilder();
+    }
+
+    public static MmceRecipeModifierBuilder newRecipeModifierBuilder() {
+        return modifierBuilder();
+    }
+
+    public static MmceRecipeModifierBuilder newModifierBuilder() {
+        return modifierBuilder();
     }
 
     public static MmceRecipeModifier modifier(String target, String io, double value, int operation) {
@@ -1105,6 +1274,78 @@ public final class MmceKubeJSBindings {
 
     private static boolean isKubeJSSource(ResourceLocation sourceId) {
         return "kubejs".equals(sourceId.getNamespace()) || sourceId.getPath().startsWith("kubejs/");
+    }
+
+    private static com.google.gson.JsonElement scalarOrArray(Object value) {
+        if (value instanceof Number number) {
+            return new com.google.gson.JsonPrimitive(number.intValue());
+        }
+        return arrayFrom(value, true);
+    }
+
+    private static com.google.gson.JsonElement blockElements(Object value) {
+        List<String> elements = MmceScriptValues.blockElements(value);
+        if (elements.size() == 1) {
+            return new com.google.gson.JsonPrimitive(elements.getFirst());
+        }
+        JsonArray array = new JsonArray();
+        for (String element : elements) {
+            array.add(element);
+        }
+        return array;
+    }
+
+    private static JsonArray arrayFrom(Object value, boolean numeric) {
+        JsonArray array = new JsonArray();
+        if (value != null && value.getClass().isArray()) {
+            int length = Array.getLength(value);
+            for (int index = 0; index < length; index++) {
+                addValue(array, Array.get(value, index), numeric);
+            }
+        } else if (value instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                addValue(array, entry, numeric);
+            }
+        } else {
+            addValue(array, value, numeric);
+        }
+        return array;
+    }
+
+    private static void addValue(JsonArray array, Object value, boolean numeric) {
+        if (numeric && value instanceof Number number) {
+            array.add(number.intValue());
+        } else if (value != null) {
+            array.add(value.toString());
+        }
+    }
+
+    private static void addModifiers(JsonObject entry, MmceRecipeModifier[] modifiers) {
+        if (modifiers == null || modifiers.length == 0) {
+            return;
+        }
+        if (modifiers.length == 1) {
+            if (modifiers[0] != null) {
+                entry.add("modifier", modifiers[0].json());
+            }
+            return;
+        }
+        JsonArray array = new JsonArray();
+        for (MmceRecipeModifier modifier : modifiers) {
+            if (modifier != null) {
+                array.add(modifier.json());
+            }
+        }
+        entry.add("modifiers", array);
+    }
+
+    private static void addNbt(JsonObject entry, String nbtJson, String previewNbtJson) {
+        if (nbtJson != null && !nbtJson.isBlank()) {
+            entry.add("nbt", JsonParser.parseString(nbtJson).getAsJsonObject());
+        }
+        if (previewNbtJson != null && !previewNbtJson.isBlank()) {
+            entry.add("preview-nbt", JsonParser.parseString(previewNbtJson).getAsJsonObject());
+        }
     }
 
     private static void onMachineTick(String machineId, MmceEventPhase phase, MmceMachineEventHandler handler) {

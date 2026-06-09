@@ -17,6 +17,7 @@ import hellfirepvp.modularmachinery.port.event.MmceEventRegistry;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgrade;
 import hellfirepvp.modularmachinery.port.integration.MmceMachineUpgradeRegistry;
 import hellfirepvp.modularmachinery.port.machine.MmceStructureMatcher;
+import hellfirepvp.modularmachinery.port.network.MmceControllerDataPayload;
 import hellfirepvp.modularmachinery.port.network.MmceEnergyHatchDataPayload;
 import hellfirepvp.modularmachinery.port.network.MmceFactoryRunsPayload;
 import hellfirepvp.modularmachinery.port.network.MmceFluidHatchDataPayload;
@@ -95,6 +96,20 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     private int factoryMaxThreads;
     private int factoryTotalParallelism;
     private String lastFactorySignature = "";
+    private boolean clientControllerDataReceived;
+    private ResourceLocation clientControllerMachineId;
+    private ResourceLocation clientControllerRecipeId;
+    private boolean clientControllerStructureFormed;
+    private boolean clientControllerWorking;
+    private int clientControllerProgress;
+    private int clientControllerTotalTime = 1;
+    private int clientControllerParallelism = 1;
+    private MmceRecipeStatus clientControllerStatus = MmceRecipeStatus.IDLE;
+    private String clientControllerStatusDetail = "";
+    private int clientControllerComponentCount;
+    private int clientControllerModifierCount;
+    private List<String> clientControllerExtraInfo = List.of();
+    private String lastControllerSignature = "";
     private boolean clientEnergyHatchDataReceived;
     private boolean clientEnergyInput;
     private long clientEnergyStored;
@@ -225,18 +240,30 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     }
 
     public boolean structureFormed() {
+        if (clientSide && clientControllerDataReceived) {
+            return clientControllerStructureFormed;
+        }
         return data(DATA_A) == 1;
     }
 
     public boolean working() {
+        if (clientSide && clientControllerDataReceived) {
+            return clientControllerWorking;
+        }
         return data(DATA_B) == 1;
     }
 
     public int recipeProgress() {
+        if (clientSide && clientControllerDataReceived) {
+            return clientControllerProgress;
+        }
         return data(DATA_C);
     }
 
     public int recipeTotalTime() {
+        if (clientSide && clientControllerDataReceived) {
+            return Math.max(1, clientControllerTotalTime);
+        }
         return Math.max(1, data(DATA_H));
     }
 
@@ -306,6 +333,11 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
             return fluid.isEmpty() ? null : BuiltInRegistries.FLUID.getKey(fluid.getFluid());
         }
         return clientFluidHatchDataReceived ? clientFluidId : null;
+    }
+
+    public String storedFluidName() {
+        ResourceLocation fluidId = storedFluidId();
+        return fluidId == null ? "empty" : prettifyIdPath(fluidId);
     }
 
     public boolean hasStoredChemical() {
@@ -402,6 +434,22 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         clientEnergyHatchDataReceived = true;
     }
 
+    public void updateControllerData(MmceControllerDataPayload payload) {
+        clientControllerMachineId = payload.machineId();
+        clientControllerRecipeId = payload.recipeId();
+        clientControllerStructureFormed = payload.structureFormed();
+        clientControllerWorking = payload.working();
+        clientControllerProgress = payload.progress();
+        clientControllerTotalTime = payload.totalTime();
+        clientControllerParallelism = payload.parallelism();
+        clientControllerStatus = payload.status();
+        clientControllerStatusDetail = payload.statusDetail();
+        clientControllerComponentCount = payload.componentCount();
+        clientControllerModifierCount = payload.modifierCount();
+        clientControllerExtraInfo = payload.extraInfo();
+        clientControllerDataReceived = true;
+    }
+
     public void updateFluidHatchData(MmceFluidHatchDataPayload payload) {
         clientFluidId = payload.fluidId();
         clientFluidAmount = payload.fluidAmount();
@@ -482,6 +530,7 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     @Override
     public void broadcastChanges() {
         super.broadcastChanges();
+        sendControllerDataIfChanged();
         sendFactoryRunsIfChanged();
         sendEnergyHatchDataIfChanged();
         sendFluidHatchDataIfChanged();
@@ -491,6 +540,7 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
     @Override
     public void sendAllDataToRemote() {
         super.sendAllDataToRemote();
+        sendControllerData(true);
         sendFactoryRuns(true);
         sendEnergyHatchData(true);
         sendFluidHatchData(true);
@@ -576,27 +626,25 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
 
     private void addControllerLines(List<Component> lines) {
         MachineControllerBlockEntity controller = blockEntity instanceof MachineControllerBlockEntity value ? value : null;
-        String machine = controller == null ? "none" : controller.getMachineId().map(ResourceLocation::toString).orElse("none");
-        String recipe = controller == null ? "none" : controller.getActiveRecipeId().map(ResourceLocation::toString).orElse("none");
-        String detail = controller == null ? "" : controller.getRecipeStatusDetail();
-        int total = Math.max(1, data(DATA_H));
-        lines.add(Component.literal("Machine: " + machine));
-        lines.add(Component.literal("Recipe: " + recipe));
-        if (controller != null) {
+        ResourceLocation machineId = controllerMachineId(controller);
+        ResourceLocation recipeId = controllerRecipeId(controller);
+        String detail = controllerStatusDetail(controller);
+        int total = recipeTotalTime();
+        lines.add(Component.literal("Machine: " + (machineId == null ? "none" : machineId)));
+        lines.add(Component.literal("Recipe: " + (recipeId == null ? "none" : recipeId)));
+        if (clientSide && clientControllerDataReceived) {
+            addExtraControllerLines(lines, clientControllerExtraInfo);
+        } else if (controller != null) {
             MmceControllerGUIRenderEvent event = MmceEventRegistry.postMachine(
                     new MmceControllerGUIRenderEvent(controller, controller.getMachineId().orElse(null)));
             if (event != null) {
-                for (String extraLine : event.extraInfo()) {
-                    if (!extraLine.isBlank()) {
-                        lines.add(Component.literal(extraLine));
-                    }
-                }
+                addExtraControllerLines(lines, event.extraInfo());
             }
         }
-        lines.add(Component.literal("Status: " + statusFromData().displayName() + (detail.isBlank() ? "" : " | " + detail)));
-        lines.add(Component.literal("Progress: " + data(DATA_C) + "/" + total + "t"));
-        lines.add(Component.literal("Parallelism: " + Math.max(1, data(DATA_D))));
-        lines.add(Component.literal("Components: " + data(DATA_F) + " | Modifiers: " + data(DATA_G)));
+        lines.add(Component.literal("Status: " + controllerStatus().displayName() + (detail.isBlank() ? "" : " | " + detail)));
+        lines.add(Component.literal("Progress: " + recipeProgress() + "/" + total + "t"));
+        lines.add(Component.literal("Parallelism: " + controllerParallelism()));
+        lines.add(Component.literal("Components: " + controllerComponentCount() + " | Modifiers: " + controllerModifierCount()));
         if (controller != null && !controller.getDynamicPatternMatches().isEmpty()) {
             lines.add(Component.literal("Dynamic patterns: " + controller.getDynamicPatternMatches().size()));
             for (MmceStructureMatcher.DynamicPatternMatch match : controller.getDynamicPatternMatches()) {
@@ -609,31 +657,27 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
 
     private void addFactoryControllerLines(List<Component> lines) {
         MachineControllerBlockEntity controller = blockEntity instanceof MachineControllerBlockEntity value ? value : null;
-        String machine = controller == null ? "none" : controller.getMachineId().map(ResourceLocation::toString).orElse("none");
-        String detail = controller == null ? "" : controller.getRecipeStatusDetail();
-        lines.add(Component.literal("Machine: " + machine));
-        lines.add(Component.literal("Status: " + statusFromData().displayName() + (detail.isBlank() ? "" : " | " + detail)));
+        ResourceLocation machineId = controllerMachineId(controller);
+        String detail = controllerStatusDetail(controller);
+        lines.add(Component.literal("Machine: " + (machineId == null ? "none" : machineId)));
+        lines.add(Component.literal("Status: " + controllerStatus().displayName() + (detail.isBlank() ? "" : " | " + detail)));
         lines.add(Component.literal("Threads: " + factoryRegularActiveRuns() + "/" + factoryMaxThreads()
                 + " regular, " + factoryActiveRuns() + " active, " + factoryWorkingRuns() + " running"));
         lines.add(Component.literal("Parallelism: " + Math.max(1, factoryTotalParallelism())));
-        lines.add(Component.literal("Components: " + data(DATA_F) + " | Modifiers: " + data(DATA_G)));
-        if (controller != null) {
+        lines.add(Component.literal("Components: " + controllerComponentCount() + " | Modifiers: " + controllerModifierCount()));
+        if (clientSide && clientControllerDataReceived) {
+            addExtraControllerLines(lines, clientControllerExtraInfo);
+        } else if (controller != null) {
             MmceControllerGUIRenderEvent event = MmceEventRegistry.postMachine(
                     new MmceControllerGUIRenderEvent(controller, controller.getMachineId().orElse(null)));
             if (event != null) {
-                for (String extraLine : event.extraInfo()) {
-                    if (!extraLine.isBlank()) {
-                        lines.add(Component.literal(extraLine));
-                    }
-                }
+                addExtraControllerLines(lines, event.extraInfo());
             }
         }
     }
 
     private void addFluidLines(List<Component> lines) {
-        FluidHatchBlockEntity hatch = blockEntity instanceof FluidHatchBlockEntity value ? value : null;
-        FluidStack fluid = hatch == null ? FluidStack.EMPTY : hatch.getStoredFluid();
-        String fluidName = fluid.isEmpty() ? "empty" : fluid.getHoverName().getString();
+        String fluidName = storedFluidName();
         String mode = switch (kind()) {
             case FLUID_INPUT_HATCH -> "Fluid input";
             case FLUID_OUTPUT_HATCH -> "Fluid output";
@@ -804,6 +848,44 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         sendFactoryRuns(false);
     }
 
+    private void sendControllerDataIfChanged() {
+        sendControllerData(false);
+    }
+
+    private void sendControllerData(boolean force) {
+        if (clientSide || !(blockEntity instanceof MachineControllerBlockEntity controller)
+                || !(playerInventory.player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        ResourceLocation machineId = controller.getMachineId().orElse(null);
+        ResourceLocation recipeId = controller.getActiveRecipeId().orElse(null);
+        int totalTime = recipeId == null ? 0 : java.util.Optional.ofNullable(MmceDataRegistry.snapshot().recipes().get(recipeId))
+                .map(MmceRecipeDefinition::recipeTime)
+                .orElse(0);
+        List<String> extraInfo = controllerExtraInfo(controller);
+        String signature = controllerSignature(controller, machineId, recipeId, totalTime, extraInfo);
+        if (!force && signature.equals(lastControllerSignature)) {
+            return;
+        }
+        lastControllerSignature = signature;
+        PacketDistributor.sendToPlayer(serverPlayer, new MmceControllerDataPayload(
+                blockPos,
+                containerId,
+                machineId,
+                recipeId,
+                controller.isStructureFormed(),
+                controller.isWorking(),
+                controller.getRecipeProgress(),
+                totalTime,
+                controller.getActiveRecipeParallelism(),
+                controller.getRecipeStatus(),
+                controller.getRecipeStatusDetail(),
+                controller.getComponentPositions().size(),
+                controller.getActiveModifiers().size(),
+                extraInfo
+        ));
+    }
+
     private void sendFactoryRuns(boolean force) {
         if (clientSide || !(blockEntity instanceof FactoryControllerBlockEntity factory)
                 || !(playerInventory.player instanceof ServerPlayer serverPlayer)) {
@@ -968,6 +1050,50 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         return builder.toString();
     }
 
+    private static String controllerSignature(MachineControllerBlockEntity controller, ResourceLocation machineId,
+                                              ResourceLocation recipeId, int totalTime, List<String> extraInfo) {
+        return (machineId == null ? "none" : machineId)
+                + "|" + (recipeId == null ? "none" : recipeId)
+                + "|" + controller.isStructureFormed()
+                + "|" + controller.isWorking()
+                + "|" + controller.getRecipeProgress()
+                + "|" + totalTime
+                + "|" + controller.getActiveRecipeParallelism()
+                + "|" + controller.getRecipeStatus().ordinal()
+                + "|" + controller.getRecipeStatusDetail()
+                + "|" + controller.getComponentPositions().size()
+                + "|" + controller.getActiveModifiers().size()
+                + "|" + String.join("\u001F", extraInfo);
+    }
+
+    private static List<String> controllerExtraInfo(MachineControllerBlockEntity controller) {
+        MmceControllerGUIRenderEvent event = MmceEventRegistry.postMachine(
+                new MmceControllerGUIRenderEvent(controller, controller.getMachineId().orElse(null)));
+        return event == null ? List.of() : event.extraInfo().stream()
+                .filter(line -> line != null && !line.isBlank())
+                .toList();
+    }
+
+    private static void addExtraControllerLines(List<Component> lines, String[] extraInfo) {
+        if (extraInfo != null) {
+            for (String line : extraInfo) {
+                if (line != null && !line.isBlank()) {
+                    lines.add(Component.literal(line));
+                }
+            }
+        }
+    }
+
+    private static void addExtraControllerLines(List<Component> lines, List<String> extraInfo) {
+        if (extraInfo != null) {
+            for (String line : extraInfo) {
+                if (line != null && !line.isBlank()) {
+                    lines.add(Component.literal(line));
+                }
+            }
+        }
+    }
+
     private static String smartInterfaceSignature(List<MmceSmartInterfaceDataPayload.BindingDetail> bindings) {
         StringBuilder builder = new StringBuilder();
         for (MmceSmartInterfaceDataPayload.BindingDetail binding : bindings) {
@@ -1010,6 +1136,55 @@ public final class MmceMachineMenu extends AbstractContainerMenu {
         MmceRecipeStatus[] values = MmceRecipeStatus.values();
         int ordinal = data(DATA_E);
         return ordinal >= 0 && ordinal < values.length ? values[ordinal] : MmceRecipeStatus.IDLE;
+    }
+
+    private ResourceLocation controllerMachineId(MachineControllerBlockEntity controller) {
+        if (clientSide && clientControllerDataReceived) {
+            return clientControllerMachineId;
+        }
+        return controller == null ? null : controller.getMachineId().orElse(null);
+    }
+
+    private ResourceLocation controllerRecipeId(MachineControllerBlockEntity controller) {
+        if (clientSide && clientControllerDataReceived) {
+            return clientControllerRecipeId;
+        }
+        return controller == null ? null : controller.getActiveRecipeId().orElse(null);
+    }
+
+    private MmceRecipeStatus controllerStatus() {
+        if (clientSide && clientControllerDataReceived) {
+            return clientControllerStatus;
+        }
+        return statusFromData();
+    }
+
+    private String controllerStatusDetail(MachineControllerBlockEntity controller) {
+        if (clientSide && clientControllerDataReceived) {
+            return clientControllerStatusDetail;
+        }
+        return controller == null ? "" : controller.getRecipeStatusDetail();
+    }
+
+    private int controllerParallelism() {
+        if (clientSide && clientControllerDataReceived) {
+            return Math.max(1, clientControllerParallelism);
+        }
+        return Math.max(1, data(DATA_D));
+    }
+
+    private int controllerComponentCount() {
+        if (clientSide && clientControllerDataReceived) {
+            return clientControllerComponentCount;
+        }
+        return data(DATA_F);
+    }
+
+    private int controllerModifierCount() {
+        if (clientSide && clientControllerDataReceived) {
+            return clientControllerModifierCount;
+        }
+        return data(DATA_G);
     }
 
     private static int slotCount(BaseMachineBlockEntity blockEntity) {
